@@ -1,7 +1,8 @@
 ================================================================================
 BẢNG PHÂN LOẠI FILE VÀ PHÂN CÔNG NHIỆM VỤ THÀNH VIÊN — NHÓM 9
 HỌC PHẦN: INT 3507 2 — BÁO CÁO ĐỊNH HƯỚNG & TRIỂN KHAI HỆ THỐNG
-DỰ ÁN: HỆ THỐNG TƯ VẤN VỀ THỦ TỤC HÀNH CHÍNH VÀ TỐ TỤNG HÌNH SỰ (MULTI-AGENT RAG)
+DỰ ÁN: HỆ THỐNG APCR-RAG (ADMINISTRATIVE & PENAL CRIMINAL RAG)
+       TƯ VẤN VỀ THỦ TỤC HÀNH CHÍNH VÀ TỐ TỤNG HÌNH SỰ (MULTI-AGENT RAG)
 GIẢNG VIÊN HƯỚNG DẪN: TS. NGHIÊM NGUYỄN VIỆT DŨNG
 ================================================================================
 

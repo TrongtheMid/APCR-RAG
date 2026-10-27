@@ -1,4 +1,4 @@
 """
-Package src cho Hệ thống Tư vấn về Thủ tục Hành chính và Tố tụng Hình sự
-Kiến trúc Đa tác tử (Multi-Agent RAG) — Học phần INT 3507 2 (Nhóm 9).
+Package src cho Hệ thống APCR-RAG (Administrative & Penal Criminal RAG)
+Tư vấn về Thủ tục Hành chính và Tố tụng Hình sự — Học phần INT 3507 2 (Nhóm 9).
 """
