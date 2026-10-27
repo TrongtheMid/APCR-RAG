@@ -1,0 +1,1040 @@
+[
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHS-BL-121",
+      "ten_thu_tuc": "Thủ tục nhận bảo lĩnh cho bị can, bị cáo tại ngoại",
+      "phan_nhom": "Tố tụng hình sự",
+      "linh_vuc": "Biện pháp ngăn chặn",
+      "cap_tham_quyen": ["Cơ quan Cảnh sát điều tra", "Viện kiểm sát", "Tòa án"],
+      "giai_doan_to_tung": ["Điều tra", "Truy tố", "Xét xử"]
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Chuẩn bị Đơn xin bảo lĩnh và văn bản cam đoan có xác nhận của UBND cấp xã nơi người nhận bảo lĩnh cư trú hoặc cơ quan, tổ chức nơi người đó làm việc, học tập.",
+      "Bước 2: Nộp hồ sơ trực tiếp tại Cơ quan đang thụ lý vụ án theo giai đoạn tố tụng tương ứng (Cơ quan CSĐT ở giai đoạn điều tra; Viện kiểm sát ở giai đoạn truy tố; Tòa án ở giai đoạn xét xử).",
+      "Bước 3: Cơ quan tiến hành tố tụng thẩm tra tính chất, mức độ nguy hiểm cho xã hội của hành vi, nhân thân của bị can/bị cáo và điều kiện của người nhận bảo lĩnh để ra Quyết định bảo lĩnh thay thế tạm giam."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-BL-01", "ten_giay_to": "Đơn xin bảo lĩnh (có cam đoan của ít nhất 02 người thân thích và xác nhận của UBND cấp xã nơi cư trú)"},
+        {"form_id": "GT-NT-02", "ten_giay_to": "Giấy tờ chứng minh quan hệ thân thích với bị can, bị cáo (Giấy khai sinh, Giấy chứng nhận kết hôn, Xác nhận thông tin cư trú...)"},
+        {"form_id": "CD-BC-03", "ten_giay_to": "Giấy cam đoan của bị can, bị cáo về việc thực hiện đầy đủ các nghĩa vụ có mặt theo giấy triệu tập"}
+      ],
+      "dieu_kien_bat_buoc": "Cá nhân nhận bảo lĩnh phải từ đủ 18 tuổi trở lên, nhân thân tốt, có tư cách đạo đức tốt, thu nhập ổn định, có điều kiện quản lý người được bảo lĩnh và bắt buộc phải có ít nhất 02 người thân thích của bị can, bị cáo cùng đứng ra bảo lĩnh."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 3,
+      "don_vi_tinh": "ngày làm việc (đối với xem xét đề nghị thay thế/hủy bỏ biện pháp ngăn chặn khi có hồ sơ hợp lệ)",
+      "chi_tiet": "Thời hạn bảo lĩnh không được quá thời hạn điều tra, thời hạn truy tố hoặc thời hạn xét xử theo quy định của Bộ luật Tố tụng Hình sự."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ) đối với thủ tục đề nghị áp dụng biện pháp bảo lĩnh trong tố tụng hình sự."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "bltths2015-d121",
+        "so_hieu_van_ban": "Bộ luật Tố tụng Hình sự số 101/2015/QH13",
+        "dieu_khoan_diem": "Điều 121 (Khoản 1, Khoản 2, Khoản 3, Khoản 4, Khoản 5)",
+        "ngay_hieu_luc": "2018-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHS-TG-145",
+      "ten_thu_tuc": "Thủ tục trình báo, tố giác tội phạm (lừa đảo qua mạng, trộm cắp tài sản, cố ý gây thương tích)",
+      "phan_nhom": "Tố tụng hình sự",
+      "linh_vuc": "Tiếp nhận & Giải quyết tố giác, tin báo về tội phạm",
+      "cap_tham_quyen": ["Công an cấp xã (tiếp nhận ban đầu)", "Cơ quan Cảnh sát điều tra", "Viện kiểm sát"],
+      "giai_doan_to_tung": ["Khởi tố - Giải quyết nguồn tin về tội phạm"]
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người dân chuẩn bị Đơn tố giác tội phạm kèm theo tài liệu, chứng cứ ban đầu (sao kê ngân hàng, tin nhắn lừa đảo, hình ảnh thương tích, camera an ninh...).",
+      "Bước 2: Trình báo trực tiếp hoặc gửi đơn đến Công an xã, phường, thị trấn nơi xảy ra vụ việc hoặc Cơ quan Cảnh sát điều tra có thẩm quyền. Công an cấp xã có trách nhiệm tiếp nhận, lập biên bản, lấy lời khai ban đầu và chuyển ngay cho Cơ quan CSĐT có thẩm quyền trong vòng 24 giờ - 7 ngày.",
+      "Bước 3: Cơ quan Cảnh sát điều tra thụ lý, kiểm tra, xác minh nguồn tin và ra một trong các quyết định: Quyết định khởi tố vụ án hình sự, Quyết định không khởi tố vụ án hình sự, hoặc Quyết định tạm đình chỉ việc giải quyết tố giác."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-TG-01", "ten_giay_to": "Đơn trình báo / Đơn tố giác tội phạm (ghi rõ họ tên, địa chỉ người tố giác và nội dung sự việc)"},
+        {"form_id": "CCCD-TG-02", "ten_giay_to": "Bản sao Thẻ Căn cước / CCCD của người trình báo, tố giác"},
+        {"form_id": "CC-TG-03", "ten_giay_to": "Tài liệu, dữ liệu điện tử, sao kê giao dịch, vật chứng liên quan đến hành vi phạm tội"}
+      ],
+      "dieu_kien_bat_buoc": "Mọi cơ quan, tổ chức, cá nhân đều có quyền và nghĩa vụ tố giác tội phạm. Công an cấp xã chỉ có thẩm quyền tiếp nhận ban đầu và xác minh sơ bộ, thẩm quyền quyết định khởi tố/không khởi tố thuộc Cơ quan Cảnh sát điều tra hoặc Viện kiểm sát. Thủ tục hoàn toàn miễn phí."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 20,
+      "don_vi_tinh": "ngày (kể từ ngày nhận được tố giác, tin báo về tội phạm)",
+      "chi_tiet": "Thời hạn giải quyết tối đa là 20 ngày; trường hợp vụ việc có nhiều tình tiết phức tạp hoặc phải kiểm tra, xác minh tại nhiều địa điểm thì thời hạn giải quyết có thể kéo dài nhưng không quá 02 tháng (và có thể gia hạn thêm 01 lần không quá 02 tháng do Viện kiểm sát phê chuẩn)."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ). Mọi hành vi yêu cầu người dân nộp phí thụ lý đơn tố giác tội phạm đều là vi phạm pháp luật hoặc lừa đảo."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "bltths2015-d145",
+        "so_hieu_van_ban": "Bộ luật Tố tụng Hình sự số 101/2015/QH13 (sửa đổi, bổ sung năm 2021)",
+        "dieu_khoan_diem": "Điều 145, Điều 146, Điều 147",
+        "ngay_hieu_luc": "2021-12-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      },
+      {
+        "law_id": "ttlt01-2021-d5",
+        "so_hieu_van_ban": "Thông tư liên tịch số 01/2021/TTLT-BCA-BQP-BTC-BNN&PTNT-VKSNDTC",
+        "dieu_khoan_diem": "Điều 1 (Sửa đổi trách nhiệm tiếp nhận, xác minh sơ bộ của Công an cấp xã)",
+        "ngay_hieu_luc": "2021-12-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHS-DT-122",
+      "ten_thu_tuc": "Thủ tục đặt tiền để bảo đảm thay thế biện pháp tạm giam",
+      "phan_nhom": "Tố tụng hình sự",
+      "linh_vuc": "Biện pháp ngăn chặn",
+      "cap_tham_quyen": ["Cơ quan Cảnh sát điều tra", "Viện kiểm sát", "Tòa án"],
+      "giai_doan_to_tung": ["Điều tra", "Truy tố", "Xét xử"]
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Bị can, bị cáo hoặc người thân thích của bị can, bị cáo nộp Đơn đề nghị đặt tiền để bảo đảm thay thế tạm giam gửi Cơ quan đang thụ lý vụ án.",
+      "Bước 2: Cơ quan điều tra, Viện kiểm sát hoặc Tòa án xem xét tính chất vụ án, nhân thân bị can/bị cáo và thông báo mức tiền cụ thể cần đặt bảo đảm.",
+      "Bước 3: Người đề nghị nộp tiền vào tài khoản tạm giữ của cơ quan tiến hành tố tụng tại Kho bạc Nhà nước và nộp lại chứng từ nộp tiền kèm Giấy cam đoan thực hiện nghĩa vụ để nhận Quyết định áp dụng biện pháp đặt tiền để bảo đảm."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-DT-01", "ten_giay_to": "Đơn đề nghị đặt tiền để bảo đảm (của bị can, bị cáo hoặc người thân thích)"},
+        {"form_id": "CD-DT-02", "ten_giay_to": "Giấy cam đoan của bị can, bị cáo về việc thực hiện các nghĩa vụ tố tụng tại Khoản 2 Điều 122 BLTTHS"},
+        {"form_id": "BL-KB-03", "ten_giay_to": "Chứng từ xác nhận đã nộp đủ số tiền bảo đảm vào Kho bạc Nhà nước theo thông báo"}
+      ],
+      "dieu_kien_bat_buoc": "Mức tiền đặt bảo đảm không dưới: 30.000.000 đồng đối với tội phạm ít nghiêm trọng; 100.000.000 đồng đối với tội phạm nghiêm trọng; 200.000.000 đồng đối với tội phạm rất nghiêm trọng; 300.000.000 đồng đối với tội phạm đặc biệt nghiêm trọng. Quyết định của Cơ quan điều tra phải được Viện kiểm sát cùng cấp phê chuẩn trước khi thi hành."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 3,
+      "don_vi_tinh": "ngày làm việc (Viện kiểm sát xem xét phê chuẩn trong 03 ngày kể từ khi nhận đề nghị)",
+      "chi_tiet": "Số tiền đặt bảo đảm được trả lại cho người đã đặt sau khi bị can, bị cáo chấp hành đầy đủ nghĩa vụ đã cam đoan."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hành chính (0 VNĐ). Lưu ý: Số tiền đặt bảo đảm là khoản tiền ký quỹ tại Kho bạc Nhà nước (được hoàn trả nếu không vi phạm nghĩa vụ), không phải là lệ phí."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "bltths2015-d122",
+        "so_hieu_van_ban": "Bộ luật Tố tụng Hình sự số 101/2015/QH13",
+        "dieu_khoan_diem": "Điều 122 (Khoản 1, Khoản 2, Khoản 3, Khoản 4, Khoản 5, Khoản 6)",
+        "ngay_hieu_luc": "2018-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      },
+      {
+        "law_id": "ttlt06-2018-d4",
+        "so_hieu_van_ban": "Thông tư liên tịch số 06/2018/TTLT-BCA-BQP-BTC-VKSNDTC-TANDTC",
+        "dieu_khoan_diem": "Điều 4, Điều 5 (Quy định mức tiền cụ thể cần đặt để bảo đảm)",
+        "ngay_hieu_luc": "2018-09-21",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHS-TG-022",
+      "ten_thu_tuc": "Thủ tục xin thăm gặp người đang bị tạm giữ, người đang bị tạm giam",
+      "phan_nhom": "Tố tụng hình sự",
+      "linh_vuc": "Biện pháp ngăn chặn",
+      "cap_tham_quyen": ["Trại tạm giam / Nhà tạm giữ", "Cơ quan đang thụ lý vụ án (CSĐT / Viện kiểm sát / Tòa án)"],
+      "giai_doan_to_tung": ["Điều tra", "Truy tố", "Xét xử"]
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Thân nhân người bị tạm giữ, tạm giam chuẩn bị giấy tờ tùy thân và giấy tờ chứng minh quan hệ thân nhân (hoặc Đơn xin thăm gặp có xác nhận của UBND cấp xã).",
+      "Bước 2: Xuất trình giấy tờ tại Bộ phận tiếp nhận thăm gặp của Nhà tạm giữ hoặc Trại tạm giam.",
+      "Bước 3: Thủ trưởng cơ sở giam giữ quyết định việc cho thăm gặp (trừ trường hợp cơ quan đang thụ lý vụ án có văn bản yêu cầu không cho thăm gặp do việc thăm gặp có thể gây ảnh hưởng nghiêm trọng đến việc giải quyết vụ án)."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-TG-22", "ten_giay_to": "Đơn xin thăm gặp thân nhân đang bị tạm giữ, tạm giam"},
+        {"form_id": "CCCD-TN-22", "ten_giay_to": "Thẻ Căn cước / CCCD hoặc Hộ chiếu còn giá trị sử dụng của người đến thăm gặp"},
+        {"form_id": "GT-QHTN-22", "ten_giay_to": "Giấy tờ xác nhận quan hệ thân nhân với người bị tạm giữ, tạm giam"}
+      ],
+      "dieu_kien_bat_buoc": "Người bị tạm giữ được gặp thân nhân 01 lần trong thời gian tạm giữ (và 01 lần trong mỗi lần gia hạn). Người bị tạm giam được gặp thân nhân 01 lần trong 01 tháng; mỗi lần gặp không quá 01 giờ và tối đa không quá 03 người thân cùng vào gặp."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 1,
+      "don_vi_tinh": "ngày làm việc (giải quyết ngay trong giờ hành chính tại cơ sở giam giữ)",
+      "chi_tiet": "Giải quyết trực tiếp trong ngày làm việc theo lịch tiếp nhận thăm gặp của Nhà tạm giữ / Trại tạm giam."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ) đối với việc giải quyết thủ tục thăm gặp thân nhân tại cơ sở giam giữ."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "ltgtg2015-d22",
+        "so_hieu_van_ban": "Luật Thi hành tạm giữ, tạm giam số 94/2015/QH13",
+        "dieu_khoan_diem": "Điều 22 (Việc gặp thân nhân, người bào chữa, tiếp xúc lãnh sự của người bị tạm giữ, người bị tạm giam)",
+        "ngay_hieu_luc": "2018-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHS-KC-331",
+      "ten_thu_tuc": "Thủ tục nộp đơn kháng cáo bản án, quyết định sơ thẩm hình sự",
+      "phan_nhom": "Tố tụng hình sự",
+      "linh_vuc": "Kháng cáo & Thi hành án hình sự",
+      "cap_tham_quyen": ["Tòa án đã xét xử sơ thẩm", "Tòa án cấp phúc thẩm"],
+      "giai_doan_to_tung": ["Xét xử"]
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người có quyền kháng cáo (bị cáo, bị hại, người đại diện...) viết Đơn kháng cáo hoặc trình bày trực tiếp với Tòa án đã xét xử sơ thẩm.",
+      "Bước 2: Nộp Đơn kháng cáo trực tiếp tại Tòa án đã xét xử sơ thẩm hoặc gửi qua dịch vụ bưu chính (nếu bị cáo đang bị tạm giam thì nộp qua Giám thị Trại tạm giam).",
+      "Bước 3: Tòa án cấp sơ thẩm kiểm tra tính hợp lệ của đơn kháng cáo, thông báo việc kháng cáo cho Viện kiểm sát và những người liên quan, sau đó chuyển hồ sơ vụ án lên Tòa án cấp phúc thẩm."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-KC-01", "ten_giay_to": "Đơn kháng cáo (ghi rõ ngày tháng năm, họ tên, địa chỉ, phần bản án/quyết định bị kháng cáo, lý do và yêu cầu kháng cáo)"},
+        {"form_id": "CC-KC-02", "ten_giay_to": "Tài liệu, chứng cứ bổ sung chứng minh cho yêu cầu kháng cáo (nếu có)"},
+        {"form_id": "CCCD-KC-03", "ten_giay_to": "Bản sao Thẻ Căn cước / CCCD của người kháng cáo"}
+      ],
+      "dieu_kien_bat_buoc": "Thời hạn kháng cáo đối với bản án sơ thẩm là 15 ngày kể từ ngày tuyên án. Trường hợp bị cáo, đương sự vắng mặt tại phiên tòa thì thời hạn 15 ngày tính từ ngày họ nhận được bản án hoặc ngày bản án được niêm yết theo quy định. Đối với quyết định sơ thẩm thì thời hạn kháng cáo là 07 ngày."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 15,
+      "don_vi_tinh": "ngày (thời hạn luật định để nộp đơn kháng cáo bản án sơ thẩm)",
+      "chi_tiet": "Tòa án cấp sơ thẩm phải gửi hồ sơ vụ án và đơn kháng cáo cho Tòa án cấp phúc thẩm trong thời hạn 07 ngày kể từ ngày hết thời hạn kháng cáo."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn án phí/lệ phí nộp đơn kháng cáo về phần hình sự (0 VNĐ). Trường hợp chỉ kháng cáo phần dân sự trong bản án hình sự (và không thuộc diện miễn án phí) thì tạm ứng án phí dân sự phúc thẩm là 300.000 VNĐ."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "bltths2015-d331",
+        "so_hieu_van_ban": "Bộ luật Tố tụng Hình sự số 101/2015/QH13",
+        "dieu_khoan_diem": "Điều 331, Điều 332, Điều 333 (Người có quyền kháng cáo, Thủ tục và Thời hạn kháng cáo)",
+        "ngay_hieu_luc": "2018-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHS-XAT-070",
+      "ten_thu_tuc": "Thủ tục xác nhận đương nhiên được xóa án tích (cập nhật thông tin xóa án tích vào Lý lịch tư pháp)",
+      "phan_nhom": "Tố tụng hình sự",
+      "linh_vuc": "Xóa án tích & Lý lịch tư pháp",
+      "cap_tham_quyen": ["Sở Tư pháp", "Trung tâm Lý lịch tư pháp quốc gia"],
+      "giai_doan_to_tung": ["Thi hành án"]
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người đã chấp hành xong bản án chuẩn bị hồ sơ chứng minh đã chấp hành xong hình phạt chính, hình phạt bổ sung và nghĩa vụ dân sự trong bản án.",
+      "Bước 2: Nộp hồ sơ yêu cầu cấp Phiếu lý lịch tư pháp (kèm thông tin xóa án tích) tại Sở Tư pháp nơi thường trú/tạm trú.",
+      "Bước 3: Cơ quan quản lý cơ sở dữ liệu lý lịch tư pháp tra cứu, xác minh người đó không thực hiện hành vi phạm tội mới trong thời hạn luật định và ghi 'không có án tích' vào Phiếu lý lịch tư pháp."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "TK-LLTP-01", "ten_giay_to": "Tờ khai yêu cầu cấp Phiếu lý lịch tư pháp (Mẫu số 03/2013/TT-BTP)"},
+        {"form_id": "GCN-CHX-02", "ten_giay_to": "Giấy chứng nhận đã chấp hành xong án phạt tù / hình phạt chính và Biên lai nộp xong án phí, bồi thường dân sự"},
+        {"form_id": "CCCD-XAT-03", "ten_giay_to": "Bản sao Thẻ Căn cước / CCCD của người yêu cầu"}
+      ],
+      "dieu_kien_bat_buoc": "Áp dụng cho người bị kết án không phải về các tội xâm phạm an ninh quốc gia hoặc phá hoại hòa bình, khi đã chấp hành xong hình phạt chính, thời gian thử thách án treo và hết thời hạn: 01 năm (phạt cảnh cáo, phạt tiền, cải tạo không giam giữ, án treo), 02 năm (phạt tù đến 05 năm), 03 năm (phạt tù từ trên 05 năm đến 15 năm), 05 năm (phạt tù trên 15 năm, chung thân/tử hình đã được giảm án) mà không thực hiện hành vi phạm tội mới. Tòa án KHÔNG cấp giấy chứng nhận xóa án tích đối với trường hợp đương nhiên xóa án tích."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 5,
+      "don_vi_tinh": "ngày làm việc (kể từ khi nhận được thông báo/xác minh đủ điều kiện đương nhiên xóa án tích)",
+      "chi_tiet": "Cơ quan quản lý cơ sở dữ liệu lý lịch tư pháp cập nhật thông tin xóa án tích trong 05 ngày làm việc (hoặc lồng ghép trong quy trình cấp Phiếu lý lịch tư pháp từ 10 - 15 ngày làm việc)."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Việc cập nhật thông tin đương nhiên xóa án tích là miễn phí (0 VNĐ). Nếu người dân đồng thời yêu cầu cấp Phiếu lý lịch tư pháp thì nộp phí cấp Phiếu theo quy định (200.000 VNĐ/lần)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "blhs2015-d70",
+        "so_hieu_van_ban": "Bộ luật Hình sự số 100/2015/QH13 (sửa đổi, bổ sung năm 2017)",
+        "dieu_khoan_diem": "Điều 70 (Đương nhiên được xóa án tích)",
+        "ngay_hieu_luc": "2018-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      },
+      {
+        "law_id": "bltths2015-d369",
+        "so_hieu_van_ban": "Bộ luật Tố tụng Hình sự số 101/2015/QH13",
+        "dieu_khoan_diem": "Điều 369 (Thủ tục xóa án tích)",
+        "ngay_hieu_luc": "2018-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHS-XAT-071",
+      "ten_thu_tuc": "Thủ tục nộp hồ sơ xin Tòa án xóa án tích theo quyết định của Tòa án",
+      "phan_nhom": "Tố tụng hình sự",
+      "linh_vuc": "Xóa án tích & Lý lịch tư pháp",
+      "cap_tham_quyen": ["Tòa án đã xét xử sơ thẩm"],
+      "giai_doan_to_tung": ["Thi hành án"]
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người bị kết án chuẩn bị Đơn xin xóa án tích kèm nhận xét của UBND cấp xã nơi cư trú hoặc cơ quan, tổ chức nơi làm việc.",
+      "Bước 2: Nộp hồ sơ trực tiếp hoặc qua bưu chính đến Tòa án đã xét xử sơ thẩm vụ án.",
+      "Bước 3: Tòa án chuyển hồ sơ cho Viện kiểm sát cùng cấp để phát biểu ý kiến; sau đó Chánh án Tòa án đã xét xử sơ thẩm ra Quyết định xóa án tích hoặc Quyết định bác đơn xin xóa án tích."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-XAT-71", "ten_giay_to": "Đơn xin xóa án tích của người bị kết án"},
+        {"form_id": "NX-UBND-71", "ten_giay_to": "Văn bản nhận xét của UBND cấp xã nơi cư trú hoặc cơ quan nơi làm việc về việc chấp hành pháp luật"},
+        {"form_id": "GCN-THA-71", "ten_giay_to": "Giấy chứng nhận chấp hành xong hình phạt tù và biên lai đã thi hành xong nghĩa vụ dân sự, án phí"}
+      ],
+      "dieu_kien_bat_buoc": "Chỉ áp dụng đối với người bị kết án về các tội quy định tại Chương XIII (Các tội xâm phạm an ninh quốc gia) và Chương XXVI (Các tội phá hoại hòa bình, chống loài người và tội phạm chiến tranh) của Bộ luật Hình sự sau khi đã chấp hành xong hình phạt và hết thời hạn luật định."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 15,
+      "don_vi_tinh": "ngày (tổng thời hạn Tòa án chuyển VKS 07 ngày + VKS trả lời 05 ngày + Chánh án ra quyết định 05 ngày)",
+      "chi_tiet": "Trong thời hạn 05 ngày kể từ ngày nhận lại hồ sơ từ Viện kiểm sát, Chánh án Tòa án sơ thẩm phải xem xét, ra quyết định xóa án tích."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ) đối với thủ tục nộp đơn xin Tòa án quyết định xóa án tích."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "blhs2015-d71",
+        "so_hieu_van_ban": "Bộ luật Hình sự số 100/2015/QH13",
+        "dieu_khoan_diem": "Điều 71 (Xóa án tích theo quyết định của Tòa án)",
+        "ngay_hieu_luc": "2018-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      },
+      {
+        "law_id": "bltths2015-d369-k2",
+        "so_hieu_van_ban": "Bộ luật Tố tụng Hình sự số 101/2015/QH13",
+        "dieu_khoan_diem": "Điều 369 (Khoản 2, Khoản 3, Khoản 4, Khoản 5)",
+        "ngay_hieu_luc": "2018-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHS-LLTP-045",
+      "ten_thu_tuc": "Thủ tục yêu cầu cấp Phiếu lý lịch tư pháp số 1 và số 2",
+      "phan_nhom": "Tố tụng hình sự",
+      "linh_vuc": "Xóa án tích & Lý lịch tư pháp",
+      "cap_tham_quyen": ["Sở Tư pháp", "Trung tâm Lý lịch tư pháp quốc gia"],
+      "giai_doan_to_tung": ["Thi hành án"]
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Cá nhân điền Tờ khai yêu cầu cấp Phiếu lý lịch tư pháp trực tiếp, qua bưu chính hoặc trực tuyến trên ứng dụng VNeID / Cổng Dịch vụ công.",
+      "Bước 2: Nộp hồ sơ và lệ phí tại Sở Tư pháp nơi thường trú hoặc tạm trú.",
+      "Bước 3: Cơ quan có thẩm quyền tra cứu thông tin án tích, cấm đảm nhiệm chức vụ và trả kết quả Phiếu lý lịch tư pháp bản điện tử hoặc bản giấy."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "TK-LLTP-45", "ten_giay_to": "Tờ khai yêu cầu cấp Phiếu lý lịch tư pháp (Mẫu số 03/2013/TT-BTP)"},
+        {"form_id": "CCCD-LLTP-46", "ten_giay_to": "Bản chụp Thẻ Căn cước / CCCD hoặc Hộ chiếu của người được cấp Phiếu"},
+        {"form_id": "GUQ-LLTP-47", "ten_giay_to": "Văn bản ủy quyền có công chứng/chứng thực (chỉ áp dụng đối với Phiếu số 1; Phiếu số 2 KHÔNG được ủy quyền)"}
+      ],
+      "dieu_kien_bat_buoc": "Phiếu lý lịch tư pháp số 1 có thể ủy quyền cho người khác làm thủ tục (cha, mẹ, vợ, chồng, con của người được cấp Phiếu số 1 thì không cần văn bản ủy quyền). Tuy nhiên, người yêu cầu cấp Phiếu lý lịch tư pháp số 2 tuyệt đối KHÔNG được ủy quyền cho người khác làm thủ tục."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 10,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận được yêu cầu hợp lệ)",
+      "chi_tiet": "Trường hợp người được cấp từng cư trú ở nhiều nơi hoặc phải xác minh về điều kiện đương nhiên được xóa án tích thì thời hạn không quá 15 ngày làm việc."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 200000,
+      "mo_ta": "Mức phí chuẩn: 200.000 VNĐ/lần/người. Đối với học sinh, sinh viên, người có công với cách mạng, thân nhân liệt sĩ: 100.000 VNĐ/lần/người. Miễn phí (0 VNĐ) đối với trẻ em, người cao tuổi, người khuyết tật, người thuộc hộ nghèo."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "llltp2009-d45",
+        "so_hieu_van_ban": "Luật Lý lịch tư pháp số 28/2009/QH12",
+        "dieu_khoan_diem": "Điều 45, Điều 46, Điều 48 (Thủ tục và thời hạn cấp Phiếu lý lịch tư pháp)",
+        "ngay_hieu_luc": "2010-07-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      },
+      {
+        "law_id": "tt244-2016-btc",
+        "so_hieu_van_ban": "Thông tư số 244/2016/TT-BTC của Bộ Tài chính",
+        "dieu_khoan_diem": "Điều 4 (Mức thu phí cung cấp thông tin lý lịch tư pháp)",
+        "ngay_hieu_luc": "2017-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHS-THA-067",
+      "ten_thu_tuc": "Thủ tục xin hoãn chấp hành án phạt tù",
+      "phan_nhom": "Tố tụng hình sự",
+      "linh_vuc": "Kháng cáo & Thi hành án hình sự",
+      "cap_tham_quyen": ["Tòa án đã ra quyết định thi hành án"],
+      "giai_doan_to_tung": ["Thi hành án"]
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người bị kết án phạt tù (hoặc thân nhân, cơ quan đề nghị) chuẩn bị Đơn xin hoãn chấp hành án phạt tù kèm tài liệu chứng minh thuộc diện được hoãn.",
+      "Bước 2: Gửi hồ sơ trực tiếp đến Tòa án đã ra Quyết định thi hành án phạt tù.",
+      "Bước 3: Chánh án Tòa án đã ra quyết định thi hành án xem xét hồ sơ và ra Quyết định hoãn chấp hành án phạt tù hoặc không chấp nhận đề nghị."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-HA-01", "ten_giay_to": "Đơn xin hoãn chấp hành án phạt tù có xác nhận của UBND cấp xã nơi cư trú"},
+        {"form_id": "KL-YK-02", "ten_giay_to": "Kết luận của bệnh viện cấp tỉnh/quân khu trở lên (nếu bị bệnh nặng) hoặc Giấy khám thai/Giấy khai sinh của con dưới 36 tháng tuổi"},
+        {"form_id": "XN-LD-03", "ten_giay_to": "Văn bản xác nhận của UBND cấp xã về hoàn cảnh gia đình đặc biệt khó khăn, là lao động duy nhất (nếu xin hoãn vì lý do lao động duy nhất)"}
+      ],
+      "dieu_kien_bat_buoc": "Chỉ được hoãn chấp hành án phạt tù khi thuộc 1 trong 4 trường hợp tại Khoản 1 Điều 67 BLHS: (a) Bị bệnh nặng (hoãn đến khi sức khỏe phục hồi); (b) Phụ nữ có thai hoặc đang nuôi con dưới 36 tháng tuổi; (c) Là người lao động duy nhất trong gia đình, nếu bắt đi chấp hành án thì gia đình sẽ gặp khó khăn đặc biệt (hoãn tối đa 01 năm, trừ tội xâm phạm an ninh quốc gia hoặc tội rất nghiêm trọng, đặc biệt nghiêm trọng); (d) Bị kết án về tội ít nghiêm trọng do nhu cầu công vụ."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 7,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận được đơn hoặc văn bản đề nghị hoãn chấp hành án phạt tù)",
+      "chi_tiet": "Chánh án Tòa án đã ra quyết định thi hành án phải xem xét và ra quyết định trong thời hạn 07 ngày làm việc."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ) đối với thủ tục xin hoãn chấp hành án phạt tù."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "blhs2015-d67",
+        "so_hieu_van_ban": "Bộ luật Hình sự số 100/2015/QH13",
+        "dieu_khoan_diem": "Điều 67 (Hoãn chấp hành hình phạt tù)",
+        "ngay_hieu_luc": "2018-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      },
+      {
+        "law_id": "lthahs2019-d24",
+        "so_hieu_van_ban": "Luật Thi hành án hình sự số 41/2019/QH14",
+        "dieu_khoan_diem": "Điều 24 (Thủ tục hoãn chấp hành án phạt tù)",
+        "ngay_hieu_luc": "2020-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHS-GD-205",
+      "ten_thu_tuc": "Thủ tục yêu cầu trưng cầu giám định tỷ lệ tổn thương cơ thể và định giá tài sản",
+      "phan_nhom": "Tố tụng hình sự",
+      "linh_vuc": "Tiếp nhận & Giải quyết tố giác, tin báo về tội phạm",
+      "cap_tham_quyen": ["Cơ quan Cảnh sát điều tra", "Viện kiểm sát", "Tòa án"],
+      "giai_doan_to_tung": ["Khởi tố - Giải quyết nguồn tin về tội phạm", "Điều tra", "Truy tố", "Xét xử"]
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Đương sự (bị hại, nguyên đơn dân sự, bị can, bị cáo) nộp Đơn yêu cầu trưng cầu giám định thương tích hoặc định giá tài sản gửi cơ quan đang tiến hành tố tụng.",
+      "Bước 2: Trong thời hạn 07 ngày kể từ ngày nhận được đơn yêu cầu, cơ quan tiến hành tố tụng xem xét ra Quyết định trưng cầu giám định / Yêu cầu định giá tài sản (nếu từ chối phải thông báo bằng văn bản và nêu rõ lý do).",
+      "Bước 3: Tổ chức giám định pháp y / Hội đồng định giá tài sản tiến hành giám định và gửi Kết luận giám định về cho cơ quan trưng cầu."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-GD-01", "ten_giay_to": "Đơn yêu cầu trưng cầu giám định / yêu cầu định giá tài sản"},
+        {"form_id": "HSBA-GD-02", "ten_giay_to": "Giấy ra viện, Tóm tắt hồ sơ bệnh án, phim X-quang (đối với giám định thương tích) hoặc hóa đơn, chứng từ mua tài sản (đối với định giá tài sản)"},
+        {"form_id": "CCCD-GD-03", "ten_giay_to": "Bản sao Thẻ Căn cước / CCCD của người yêu cầu"}
+      ],
+      "dieu_kien_bat_buoc": "Tỷ lệ tổn thương cơ thể hoặc giá trị tài sản bị xâm hại là căn cứ bắt buộc để định tội danh và khung hình phạt (Điều 206, 215 BLTTHS). Nếu cơ quan tiến hành tố tụng từ chối yêu cầu giám định thì người yêu cầu có quyền tự mình yêu cầu giám định trong thời hạn 07 ngày."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 7,
+      "don_vi_tinh": "ngày (thời hạn cơ quan tố tụng xem xét đơn và ra Quyết định trưng cầu giám định)",
+      "chi_tiet": "Thời hạn giám định pháp y thương tích không quá 09 ngày (theo Điều 208 BLTTHS)."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn chi phí giám định (0 VNĐ) đối với người bị hại khi cơ quan tiến hành tố tụng ra Quyết định trưng cầu giám định (do ngân sách nhà nước chi trả)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "bltths2015-d205",
+        "so_hieu_van_ban": "Bộ luật Tố tụng Hình sự số 101/2015/QH13",
+        "dieu_khoan_diem": "Điều 205, Điều 206, Điều 207, Điều 215",
+        "ngay_hieu_luc": "2018-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-HT-01",
+      "ten_thu_tuc": "Thủ tục đăng ký khai sinh thông thường (bao gồm liên thông đăng ký thường trú, cấp thẻ BHYT cho trẻ dưới 6 tuổi)",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Hộ tịch",
+      "cap_tham_quyen": ["UBND cấp xã"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người đi đăng ký khai sinh nộp hồ sơ trực tiếp tại Bộ phận Một cửa của UBND cấp xã nơi cư trú của người cha hoặc người mẹ, hoặc nộp trực tuyến trên Cổng Dịch vụ công Quốc gia.",
+      "Bước 2: Công chức tư pháp - hộ tịch kiểm tra thông tin trên Cơ sở dữ liệu quốc gia về dân cư, đối chiếu Giấy chứng sinh và ghi vào Sổ đăng ký khai sinh, cấp Mã định danh cá nhân cho trẻ.",
+      "Bước 3: Chủ tịch UBND cấp xã ký và trả Giấy khai sinh (bản chính + bản điện tử) ngay trong ngày làm việc."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "TK-KS-01", "ten_giay_to": "Tờ khai đăng ký khai sinh theo mẫu (hoặc biểu mẫu điện tử tương tác)"},
+        {"form_id": "GCS-KS-02", "ten_giay_to": "Bản chính Giấy chứng sinh do cơ sở y tế cấp (hoặc văn bản của người làm chứng nếu sinh ngoài cơ sở y tế)"},
+        {"form_id": "GCNKH-KS-03", "ten_giay_to": "Xuất trình Giấy chứng nhận kết hôn của cha mẹ (nếu đã có thông tin trên CSDL quốc gia về dân cư hoặc VNeID thì không phải xuất trình bản giấy)"}
+      ],
+      "dieu_kien_bat_buoc": "Trong thời hạn 60 ngày kể từ ngày sinh con, cha hoặc mẹ có trách nhiệm đăng ký khai sinh cho con. Lưu ý quan trọng: Tuyệt đối KHÔNG yêu cầu người dân nộp hoặc xuất trình Sổ hộ khẩu giấy, Sổ tạm trú giấy khi làm thủ tục đăng ký khai sinh."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 1,
+      "don_vi_tinh": "ngày làm việc (giải quyết ngay trong ngày; nếu nhận hồ sơ sau 15 giờ thì trả kết quả trong ngày làm việc tiếp theo)",
+      "chi_tiet": "Trường hợp thực hiện liên thông điện tử (khai sinh + đăng ký thường trú + cấp thẻ BHYT) thì thời gian giải quyết toàn bộ không quá 03 - 05 ngày làm việc."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ) đối với đăng ký khai sinh đúng hạn cho trẻ em."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lht2014-d15",
+        "so_hieu_van_ban": "Luật Hộ tịch số 60/2014/QH13",
+        "dieu_khoan_diem": "Điều 15, Điều 16 (Trách nhiệm và Thủ tục đăng ký khai sinh)",
+        "ngay_hieu_luc": "2016-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      },
+      {
+        "law_id": "nd104-2022-d2",
+        "so_hieu_van_ban": "Nghị định số 104/2022/NĐ-CP của Chính phủ",
+        "dieu_khoan_diem": "Điều 2 (Bãi bỏ yêu cầu nộp, xuất trình Sổ hộ khẩu, Sổ tạm trú giấy trong thủ tục hộ tịch)",
+        "ngay_hieu_luc": "2023-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-HT-02",
+      "ten_thu_tuc": "Thủ tục đăng ký kết hôn trong nước",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Hộ tịch",
+      "cap_tham_quyen": ["UBND cấp xã"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Hai bên nam, nữ nộp hồ sơ đăng ký kết hôn tại UBND cấp xã nơi cư trú của một trong hai bên (hoặc nộp trực tuyến trên Cổng Dịch vụ công).",
+      "Bước 2: Công chức tư pháp - hộ tịch xác minh điều kiện kết hôn và tình trạng hôn nhân trên Hệ thống thông tin giải quyết TTHC / Cơ sở dữ liệu hộ tịch điện tử.",
+      "Bước 3: Hai bên nam, nữ cùng có mặt tại trụ sở UBND cấp xã để ký vào Sổ hộ tịch và Giấy chứng nhận kết hôn."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "TK-KH-01", "ten_giay_to": "Tờ khai đăng ký kết hôn theo mẫu (hai bên nam, nữ có thể khai chung vào một Tờ khai)"},
+        {"form_id": "GXNTTHN-02", "ten_giay_to": "Bản chính Giấy xác nhận tình trạng hôn nhân (chỉ yêu cầu nếu chưa có thông tin tình trạng hôn nhân trong Cơ sở dữ liệu quốc gia về dân cư)"},
+        {"form_id": "CCCD-KH-03", "ten_giay_to": "Xuất trình Thẻ Căn cước / CCCD hoặc tài khoản định danh điện tử VNeID mức độ 2 của hai bên nam, nữ"}
+      ],
+      "dieu_kien_bat_buoc": "Nam từ đủ 20 tuổi trở lên, nữ từ đủ 18 tuổi trở lên; việc kết hôn do nam và nữ tự nguyện quyết định; không bị mất năng lực hành vi dân sự và không thuộc các trường hợp cấm kết hôn theo Luật Hôn nhân và gia đình. Khi nhận Giấy chứng nhận kết hôn, bắt buộc cả hai bên nam, nữ phải có mặt."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 1,
+      "don_vi_tinh": "ngày làm việc (giải quyết ngay sau khi nhận đủ hồ sơ hợp lệ)",
+      "chi_tiet": "Trường hợp cần phải xác minh điều kiện kết hôn của hai bên nam, nữ thì thời hạn giải quyết không quá 05 ngày làm việc."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ) đối với việc đăng ký kết hôn của công dân Việt Nam cư trú ở trong nước."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lht2014-d17",
+        "so_hieu_van_ban": "Luật Hộ tịch số 60/2014/QH13",
+        "dieu_khoan_diem": "Điều 17, Điều 18 (Thẩm quyền và Thủ tục đăng ký kết hôn)",
+        "ngay_hieu_luc": "2016-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      },
+      {
+        "law_id": "lhn2014-d8",
+        "so_hieu_van_ban": "Luật Hôn nhân và gia đình số 52/2014/QH13",
+        "dieu_khoan_diem": "Điều 8 (Điều kiện kết hôn)",
+        "ngay_hieu_luc": "2015-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-HT-03",
+      "ten_thu_tuc": "Thủ tục cấp Giấy xác nhận tình trạng hôn nhân",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Hộ tịch",
+      "cap_tham_quyen": ["UBND cấp xã"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người có yêu cầu nộp hồ sơ trực tiếp tại UBND cấp xã nơi thường trú (hoặc nơi tạm trú nếu không có nơi thường trú) hoặc nộp trực tuyến trên Cổng Dịch vụ công.",
+      "Bước 2: Công chức tư pháp - hộ tịch kiểm tra, xác minh tình trạng hôn nhân của người yêu cầu (nếu đã từng đăng ký thường trú tại nhiều nơi thì tra cứu/xác minh liên thông).",
+      "Bước 3: Chủ tịch UBND cấp xã ký cấp Giấy xác nhận tình trạng hôn nhân."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "TK-TTHN-01", "ten_giay_to": "Tờ khai cấp Giấy xác nhận tình trạng hôn nhân theo mẫu"},
+        {"form_id": "BA-LH-02", "ten_giay_to": "Bản sao trích lục bản án/quyết định ly hôn đã có hiệu lực pháp luật hoặc Giấy chứng tử của vợ/chồng (nếu đã từng kết hôn rồi ly hôn hoặc vợ/chồng đã mất)"},
+        {"form_id": "CCCD-TTHN-03", "ten_giay_to": "Xuất trình Thẻ Căn cước / CCCD hoặc VNeID mức độ 2"}
+      ],
+      "dieu_kien_bat_buoc": "Giấy xác nhận tình trạng hôn nhân có giá trị trong thời hạn 06 tháng kể từ ngày cấp hoặc đến thời điểm thay đổi tình trạng hôn nhân (tùy theo thời điểm nào đến trước) và phải ghi rõ mục đích sử dụng (để kết hôn hoặc mục đích dân sự khác)."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 3,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận đủ hồ sơ hợp lệ)",
+      "chi_tiet": "Trường hợp phải gửi văn bản xác minh tại nhiều nơi từng cư trú trước đây thì thời hạn không quá 20 ngày."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 15000,
+      "mo_ta": "Mức lệ phí tham chiếu theo HĐND cấp tỉnh (trung bình 15.000 VNĐ/bản). Miễn lệ phí cho người thuộc hộ nghèo, người khuyết tật, người có công."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "nd123-2015-d21",
+        "so_hieu_van_ban": "Nghị định số 123/2015/NĐ-CP quy định chi tiết một số điều của Luật Hộ tịch",
+        "dieu_khoan_diem": "Điều 21, Điều 22, Điều 23 (Thẩm quyền, thủ tục và giá trị của Giấy xác nhận tình trạng hôn nhân)",
+        "ngay_hieu_luc": "2016-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-HT-04",
+      "ten_thu_tuc": "Thủ tục đăng ký khai tử",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Hộ tịch",
+      "cap_tham_quyen": ["UBND cấp xã"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Thân nhân người chết nộp hồ sơ đăng ký khai tử tại UBND cấp xã nơi cư trú cuối cùng của người chết (hoặc thực hiện liên thông khai tử - xóa đăng ký thường trú - trợ cấp mai táng phí).",
+      "Bước 2: Công chức tư pháp - hộ tịch kiểm tra Giấy báo tử và ghi vào Sổ hộ tịch, đồng thời cập nhật trạng thái vào Cơ sở dữ liệu quốc gia về dân cư.",
+      "Bước 3: Trả Trích lục khai tử cho người đi đăng ký."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "TK-KT-01", "ten_giay_to": "Tờ khai đăng ký khai tử theo mẫu"},
+        {"form_id": "GBT-KT-02", "ten_giay_to": "Giấy báo tử hoặc văn bản thay thế Giấy báo tử do cơ quan có thẩm quyền cấp"},
+        {"form_id": "CCCD-KT-03", "ten_giay_to": "Xuất trình Thẻ Căn cước / CCCD của người đi đăng ký khai tử"}
+      ],
+      "dieu_kien_bat_buoc": "Trong thời hạn 15 ngày kể từ ngày có người chết thì vợ, chồng hoặc con, cha, mẹ hoặc người thân thích khác của người chết có trách nhiệm đi đăng ký khai tử."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 1,
+      "don_vi_tinh": "ngày làm việc (giải quyết ngay sau khi nhận đủ hồ sơ hợp lệ)",
+      "chi_tiet": "Nhận hồ sơ sau 15 giờ thì trả kết quả trong ngày làm việc tiếp theo."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ) đối với đăng ký khai tử đúng hạn."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lht2014-d32",
+        "so_hieu_van_ban": "Luật Hộ tịch số 60/2014/QH13",
+        "dieu_khoan_diem": "Điều 32, Điều 33, Điều 34 (Thẩm quyền, Trách nhiệm và Thủ tục đăng ký khai tử)",
+        "ngay_hieu_luc": "2016-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-HT-05",
+      "ten_thu_tuc": "Thủ tục đăng ký kết hôn có yếu tố nước ngoài",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Hộ tịch",
+      "cap_tham_quyen": ["UBND cấp huyện"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Hai bên nam, nữ nộp hồ sơ tại Bộ phận Một cửa của UBND cấp huyện nơi cư trú của công dân Việt Nam.",
+      "Bước 2: Phòng Tư pháp cấp huyện tổ chức thẩm tra, xác minh hồ sơ đăng ký kết hôn và báo cáo Chủ tịch UBND cấp huyện quyết định.",
+      "Bước 3: Hai bên nam, nữ trực tiếp có mặt tại trụ sở UBND cấp huyện để ký vào Sổ hộ tịch và nhận Giấy chứng nhận kết hôn."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "TK-KHNN-01", "ten_giay_to": "Tờ khai đăng ký kết hôn theo mẫu (có dán ảnh của hai bên nam, nữ)"},
+        {"form_id": "GXN-DT-02", "ten_giay_to": "Giấy tờ chứng minh tình trạng hôn nhân của người nước ngoài (do cơ quan có thẩm quyền nước ngoài cấp, đã hợp pháp hóa lãnh sự và dịch thuật công chứng)"},
+        {"form_id": "GKSK-TT-03", "ten_giay_to": "Giấy xác nhận của tổ chức y tế có thẩm quyền của Việt Nam hoặc nước ngoài xác nhận người đó không mắc bệnh tâm thần hoặc bệnh khác mà không có khả năng nhận thức, làm chủ hành vi"}
+      ],
+      "dieu_kien_bat_buoc": "Thẩm quyền đăng ký kết hôn giữa công dân Việt Nam với người nước ngoài thuộc về UBND cấp huyện (KHÔNG thuộc thẩm quyền của UBND cấp xã, trừ khu vực biên giới đặc thù). Giấy tờ do nước ngoài cấp phải được hợp pháp hóa lãnh sự."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 15,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày Phòng Tư pháp nhận đủ hồ sơ hợp lệ)",
+      "chi_tiet": "Phòng Tư pháp thẩm tra hồ sơ trong 10 ngày làm việc; Chủ tịch UBND cấp huyện ký Giấy chứng nhận kết hôn và Phòng Tư pháp tổ chức trao trong 03 - 05 ngày làm việc."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 1000000,
+      "mo_ta": "Mức lệ phí đăng ký kết hôn có yếu tố nước ngoài tại UBND cấp huyện (theo Nghị quyết HĐND cấp tỉnh, phổ biến là 1.000.000 VNĐ/việc)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lht2014-d37",
+        "so_hieu_van_ban": "Luật Hộ tịch số 60/2014/QH13",
+        "dieu_khoan_diem": "Điều 37, Điều 38 (Thẩm quyền và Thủ tục đăng ký kết hôn có yếu tố nước ngoài)",
+        "ngay_hieu_luc": "2016-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-CT-01",
+      "ten_thu_tuc": "Thủ tục đăng ký thường trú",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Cư trú & Căn cước",
+      "cap_tham_quyen": ["Công an cấp xã"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Cá nhân, hộ gia đình chuẩn bị hồ sơ đăng ký thường trú và nộp trực tuyến qua Cổng dịch vụ công Bộ Công an / ứng dụng VNeID hoặc trực tiếp tại Công an xã, phường, thị trấn nơi dự kiến thường trú.",
+      "Bước 2: Cơ quan đăng ký cư trú kiểm tra tính pháp lý của chỗ ở hợp pháp và điều kiện đăng ký thường trú.",
+      "Bước 3: Trong thời hạn không quá 07 ngày làm việc, Cơ quan đăng ký cư trú cập nhật thông tin nơi thường trú mới của công dân vào Cơ sở dữ liệu về cư trú và thông báo kết quả (KHÔNG cấp Sổ hộ khẩu giấy)."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "CT01-TT-01", "ten_giay_to": "Tờ khai thay đổi thông tin cư trú (Mẫu CT01 ban hành kèm Thông tư 66/2023/TT-BCA); nếu đăng ký vào hộ đã có thì phải có ý kiến đồng ý của chủ hộ và chủ sở hữu chỗ ở"},
+        {"form_id": "GT-COHP-02", "ten_giay_to": "Giấy tờ, tài liệu chứng minh việc sở hữu chỗ ở hợp pháp (Sổ đỏ/Giấy chứng nhận quyền sử dụng đất, Hợp đồng mua bán nhà ở, hoặc Hợp đồng thuê/mượn/ở nhờ có công chứng/chứng thực)"},
+        {"form_id": "GT-QHTN-03", "ten_giay_to": "Giấy tờ chứng minh quan hệ nhân thân với chủ hộ (nếu đăng ký thường trú về với vợ/chồng, cha/mẹ, con và chưa có dữ liệu trên CSDL quốc gia về dân cư)"}
+      ],
+      "dieu_kien_bat_buoc": "Công dân có chỗ ở hợp pháp thuộc quyền sở hữu của mình thì được đăng ký thường trú tại chỗ ở hợp pháp đó. Nếu đăng ký thường trú tại chỗ ở hợp pháp do thuê, mượn, ở nhờ thì phải được chủ sở hữu đồng ý và bảo đảm điều kiện diện tích nhà ở tối thiểu do HĐND cấp tỉnh quy định (không thấp hơn 08 m2 sàn/người)."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 7,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận được hồ sơ đầy đủ và hợp lệ)",
+      "chi_tiet": "Kết quả được cập nhật trực tiếp trên Cơ sở dữ liệu quốc gia về dân cư và ứng dụng VNeID."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 15000,
+      "mo_ta": "Nộp hồ sơ trực tiếp: 15.000 VNĐ/lần đăng ký. Nộp hồ sơ qua cổng dịch vụ công trực tuyến: 7.000 VNĐ/lần đăng ký (theo Thông tư 75/2022/TT-BTC)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lct2020-d20",
+        "so_hieu_van_ban": "Luật Cư trú số 68/2020/QH14",
+        "dieu_khoan_diem": "Điều 20, Điều 21, Điều 22 (Điều kiện, Hồ sơ và Thủ tục đăng ký thường trú)",
+        "ngay_hieu_luc": "2021-07-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      },
+      {
+        "law_id": "tt75-2022-btc",
+        "so_hieu_van_ban": "Thông tư số 75/2022/TT-BTC của Bộ Tài chính",
+        "dieu_khoan_diem": "Điều 5 (Biểu mức thu lệ phí đăng ký cư trú)",
+        "ngay_hieu_luc": "2023-02-05",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-CT-02",
+      "ten_thu_tuc": "Thủ tục đăng ký tạm trú",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Cư trú & Căn cước",
+      "cap_tham_quyen": ["Công an cấp xã"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Công dân đến sinh sống tại chỗ ở hợp pháp ngoài phạm vi đơn vị hành chính cấp xã nơi đã đăng ký thường trú từ 30 ngày trở lên nộp hồ sơ đăng ký tạm trú tại Công an cấp xã hoặc qua ứng dụng VNeID.",
+      "Bước 2: Cơ quan đăng ký cư trú kiểm tra giấy tờ chứng minh chỗ ở hợp pháp và Tờ khai CT01.",
+      "Bước 3: Cập nhật thông tin về nơi tạm trú mới, thời hạn tạm trú của người đăng ký vào Cơ sở dữ liệu về cư trú trong 03 ngày làm việc."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "CT01-TAMTRU-01", "ten_giay_to": "Tờ khai thay đổi thông tin cư trú (Mẫu CT01)"},
+        {"form_id": "GT-COHP-TAMTRU-02", "ten_giay_to": "Giấy tờ, tài liệu chứng minh chỗ ở hợp pháp (Hợp đồng thuê nhà, văn bản cho mượn/cho ở nhờ hoặc xác nhận của chủ nhà)"}
+      ],
+      "dieu_kien_bat_buoc": "Thời hạn tạm trú tối đa là 02 năm và có thể tiếp tục gia hạn nhiều lần. Công dân phải làm thủ tục gia hạn tạm trú trong thời hạn 15 ngày trước ngày kết thúc thời hạn tạm trú đã đăng ký."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 3,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận được hồ sơ đầy đủ và hợp lệ)",
+      "chi_tiet": "Thông tin tạm trú được hiển thị trực tiếp trên ứng dụng VNeID và Thông báo kết quả giải quyết thủ tục đăng ký cư trú (Mẫu CT08)."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 10000,
+      "mo_ta": "Đăng ký tạm trú trực tiếp: 10.000 VNĐ/lần (cá nhân) hoặc 15.000 VNĐ/lần (cả hộ). Đăng ký trực tuyến qua VNeID/Cổng DVC: 5.000 VNĐ/lần."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lct2020-d27",
+        "so_hieu_van_ban": "Luật Cư trú số 68/2020/QH14",
+        "dieu_khoan_diem": "Điều 27, Điều 28 (Điều kiện, Hồ sơ và Thủ tục đăng ký tạm trú)",
+        "ngay_hieu_luc": "2021-07-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-CC-01",
+      "ten_thu_tuc": "Thủ tục cấp đổi, cấp lại thẻ Căn cước theo Luật Căn cước 2023",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Cư trú & Căn cước",
+      "cap_tham_quyen": ["Cơ quan quản lý căn cước Công an cấp huyện", "Cơ quan quản lý căn cước Công an cấp tỉnh", "Cơ quan quản lý căn cước Bộ Công an"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Công dân đăng ký thời gian, địa điểm làm thủ tục trên ứng dụng VNeID / Cổng dịch vụ công hoặc trực tiếp đến Cơ quan quản lý căn cước Công an cấp huyện/tỉnh.",
+      "Bước 2: Cán bộ thu nhận thông tin kiểm tra thông tin công dân trong Cơ sở dữ liệu quốc gia về dân cư, thu nhận ảnh khuôn mặt, vân tay, mống mắt và in Phiếu thu nhận thông tin căn cước để công dân kiểm tra, ký tên.",
+      "Bước 3: Thu lại thẻ CCCD/Căn cước cũ (đối với trường hợp cấp đổi) và trả thẻ Căn cước mới tại cơ quan quản lý căn cước hoặc qua dịch vụ bưu chính."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "PTN-CC-01", "ten_giay_to": "Phiếu thu nhận thông tin căn cước (do cán bộ in từ hệ thống để công dân kiểm tra và ký xác nhận)"},
+        {"form_id": "CCCD-CU-02", "ten_giay_to": "Thẻ Căn cước công dân / Thẻ Căn cước đang sử dụng (nộp lại trong trường hợp làm thủ tục cấp đổi)"}
+      ],
+      "dieu_kien_bat_buoc": "Công dân Việt Nam đã được cấp thẻ Căn cước phải thực hiện thủ tục cấp đổi thẻ Căn cước khi đủ 14 tuổi, 25 tuổi, 40 tuổi và 60 tuổi (nếu thẻ được cấp trong thời hạn 02 năm trước các độ tuổi này thì có giá trị sử dụng đến độ tuổi cấp đổi tiếp theo). Trẻ em dưới 14 tuổi cũng được cấp thẻ Căn cước theo nhu cầu. Lưu ý: Chứng minh nhân dân (CMND) 9 số và 12 số hết giá trị sử dụng hoàn toàn từ ngày 01/01/2025."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 7,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận đủ hồ sơ hợp lệ theo Điều 26 Luật Căn cước 2023)",
+      "chi_tiet": "Trong thời hạn 07 ngày làm việc kể từ ngày nhận đủ hồ sơ theo quy định, cơ quan quản lý căn cước phải cấp, cấp đổi, cấp lại thẻ Căn cước."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 30000,
+      "mo_ta": "Cấp đổi sang thẻ Căn cước: 30.000 VNĐ/thẻ; Cấp lại thẻ Căn cước (do mất/hư hỏng): 50.000 VNĐ/thẻ (Giảm 50% khi nộp hồ sơ trực tuyến). Miễn lệ phí (0 VNĐ) khi cấp thẻ Căn cước lần đầu hoặc cấp đổi khi đến độ tuổi 14, 25, 40, 60 tuổi."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lcc2023-d24",
+        "so_hieu_van_ban": "Luật Căn cước số 26/2023/QH15",
+        "dieu_khoan_diem": "Điều 21, Điều 24, Điều 25, Điều 26, Điều 46 (Độ tuổi cấp đổi, Thủ tục, Thời hạn 07 ngày làm việc và Hiệu lực chuyển tiếp)",
+        "ngay_hieu_luc": "2024-07-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-CT-OLD-01",
+      "ten_thu_tuc": "[QUY ĐỊNH CŨ ĐÃ BÃI BỎ] Thủ tục cấp Sổ hộ khẩu giấy khi đăng ký thường trú",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Cư trú & Căn cước",
+      "cap_tham_quyen": ["Công an cấp huyện", "Công an cấp xã"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: [Quy định cũ đã bãi bỏ] Nộp Phiếu báo thay đổi hộ khẩu, nhân khẩu, Bản khai nhân khẩu, Giấy chuyển hộ khẩu (HK07) và Sổ hộ khẩu giấy bản gốc.",
+      "Bước 2: [Quy định cũ đã bãi bỏ] Cơ quan công an cấp mới hoặc ghi bổ sung vào Sổ hộ khẩu giấy trong thời hạn 15 ngày."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "SHK-OLD-01", "ten_giay_to": "Sổ hộ khẩu giấy và Giấy chuyển hộ khẩu (ĐÃ HẾT HIỆU LỰC TỪ 01/01/2023)"}
+      ],
+      "dieu_kien_bat_buoc": "CẢNH BÁO PHÁP LÝ: Kể từ ngày 01/01/2023, toàn bộ Sổ hộ khẩu giấy và Sổ tạm trú giấy đã chính thức hết giá trị sử dụng theo Khoản 3 Điều 38 Luật Cư trú 2020. Cơ quan nhà nước KHÔNG được cấp mới Sổ hộ khẩu giấy và KHÔNG được yêu cầu công dân nộp/xuất trình Sổ hộ khẩu giấy khi thực hiện thủ tục hành chính."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 15,
+      "don_vi_tinh": "ngày làm việc (theo Luật Cư trú 2006 cũ - nay đã rút ngắn còn 07 ngày làm việc theo Luật Cư trú 2020)",
+      "chi_tiet": "Quy định cấp Sổ hộ khẩu giấy trong 15 ngày đã hết hiệu lực. Hiện nay áp dụng thủ tục TTHC-CT-01 (cập nhật điện tử trong 07 ngày làm việc)."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 20000,
+      "mo_ta": "Mức phí cấp Sổ hộ khẩu giấy cũ đã bãi bỏ. Hiện nay áp dụng mức phí cập nhật đăng ký thường trú theo Thông tư 75/2022/TT-BTC (15.000 VNĐ trực tiếp / 7.000 VNĐ trực tuyến)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lct2006-d24-old",
+        "so_hieu_van_ban": "Luật Cư trú số 81/2006/QH11 (sửa đổi, bổ sung năm 2013)",
+        "dieu_khoan_diem": "Điều 24 (Sổ hộ khẩu giấy)",
+        "ngay_hieu_luc": "2007-07-01",
+        "trang_thai_hieu_luc": "HẾT HIỆU LỰC",
+        "van_ban_thay_the": "Luật Cư trú số 68/2020/QH14 (Điều 38 Khoản 3 - bãi bỏ Sổ hộ khẩu giấy từ 01/01/2023)"
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-CC-OLD-02",
+      "ten_thu_tuc": "[QUY ĐỊNH CŨ ĐÃ BÃI BỎ] Thủ tục cấp và sử dụng Chứng minh nhân dân (CMND) 9 số và 12 số",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Cư trú & Căn cước",
+      "cap_tham_quyen": ["Công an cấp huyện", "Công an cấp tỉnh"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: [Quy định cũ đã bãi bỏ] Kê khai Tờ khai cấp CMND và xuất trình Sổ hộ khẩu giấy để cấp Chứng minh nhân dân 9 số.",
+      "Bước 2: [Quy định cũ đã bãi bỏ] Nhận Chứng minh nhân dân có thời hạn 15 năm."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "CMND-OLD-01", "ten_giay_to": "Tờ khai cấp Chứng minh nhân dân 9 số (ĐÃ HẾT HIỆU LỰC)"}
+      ],
+      "dieu_kien_bat_buoc": "CẢNH BÁO PHÁP LÝ: Theo Khoản 2 Điều 46 Luật Căn cước số 26/2023/QH15, mọi Chứng minh nhân dân (CMND 9 số và 12 số) dù thời hạn in trên thẻ còn sau ngày 31/12/2024 thì cũng chỉ có giá trị sử dụng đến hết ngày 31/12/2024. Từ ngày 01/01/2025, CMND chính thức HẾT HIỆU LỰC hoàn toàn; người dân bắt buộc phải đổi sang thẻ Căn cước theo thủ tục TTHC-CC-01."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 15,
+      "don_vi_tinh": "ngày làm việc (theo quy định CMND cũ - nay đã thay thế bởi Luật Căn cước 2023 là 07 ngày làm việc)",
+      "chi_tiet": "Chứng minh nhân dân 9 số đã hết hiệu lực hoàn toàn từ ngày 01/01/2025."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Thủ tục cấp CMND đã ngừng thực hiện. Công dân thực hiện cấp đổi sang thẻ Căn cước mới (mã TTHC-CC-01)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "nd05-1999-cmnd-old",
+        "so_hieu_van_ban": "Nghị định số 05/1999/NĐ-CP về Chứng minh nhân dân",
+        "dieu_khoan_diem": "Điều 3, Điều 6 (Cấp và sử dụng CMND 9 số)",
+        "ngay_hieu_luc": "1999-05-01",
+        "trang_thai_hieu_luc": "HẾT HIỆU LỰC",
+        "van_ban_thay_the": "Luật Căn cước số 26/2023/QH15 (Khoản 2 Điều 46 - CMND hết giá trị sử dụng sau ngày 31/12/2024)"
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-LD-01",
+      "ten_thu_tuc": "Thủ tục nộp hồ sơ đăng ký và hưởng trợ cấp thất nghiệp",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Lao động & Bảo hiểm",
+      "cap_tham_quyen": ["Trung tâm Dịch vụ việc làm", "Sở Lao động - Thương binh và Xã hội"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Trong thời hạn 03 tháng kể từ ngày chấm dứt hợp đồng lao động, người lao động nộp 01 bộ hồ sơ đề nghị hưởng trợ cấp thất nghiệp tại Trung tâm dịch vụ việc làm nơi muốn nhận trợ cấp hoặc nộp trực tuyến trên Cổng Dịch vụ công Quốc gia.",
+      "Bước 2: Trung tâm dịch vụ việc làm thẩm định hồ sơ, trình Giám đốc Sở Lao động - Thương binh và Xã hội ký Quyết định hưởng trợ cấp thất nghiệp trong thời hạn 20 ngày làm việc.",
+      "Bước 3: Cơ quan Bảo hiểm xã hội thực hiện chi trả tiền trợ cấp thất nghiệp tháng đầu tiên cho người lao động trong 05 ngày làm việc kể từ ngày nhận được quyết định."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DN-TCTN-01", "ten_giay_to": "Đề nghị hưởng trợ cấp thất nghiệp theo mẫu (Mẫu số 03 Thông tư 15/2023/TT-BLĐTBXH)"},
+        {"form_id": "QD-TV-02", "ten_giay_to": "Bản chính hoặc bản sao có chứng thực Quyết định thôi việc / Quyết định chấm dứt hợp đồng lao động / Hợp đồng lao động đã hết hạn"},
+        {"form_id": "SBHXH-03", "ten_giay_to": "Sổ bảo hiểm xã hội đã được cơ quan BHXH chốt thời gian đóng bảo hiểm thất nghiệp"}
+      ],
+      "dieu_kien_bat_buoc": "Người lao động phải: (1) Đã chấm dứt hợp đồng lao động hợp pháp (không đơn phương chấm dứt trái pháp luật, không đang hưởng lương hưu); (2) Đã đóng bảo hiểm thất nghiệp từ đủ 12 tháng trở lên trong thời gian 24 tháng trước khi chấm dứt hợp đồng; (3) Nộp hồ sơ đúng hạn trong vòng 03 tháng kể từ ngày chấm dứt HĐLĐ; (4) Chưa tìm được việc làm sau 15 ngày kể từ ngày nộp hồ sơ."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 20,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày Trung tâm Dịch vụ việc làm nhận đủ hồ sơ hợp lệ)",
+      "chi_tiet": "Giám đốc Sở LĐTBXH ra Quyết định hưởng trợ cấp thất nghiệp trong thời hạn 20 ngày làm việc."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ) đối với thủ tục giải quyết hưởng trợ cấp thất nghiệp."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lvl2013-d46",
+        "so_hieu_van_ban": "Luật Việc làm số 38/2013/QH13",
+        "dieu_khoan_diem": "Điều 46, Điều 49, Điều 50 (Điều kiện, mức hưởng và thời hạn nộp hồ sơ hưởng trợ cấp thất nghiệp)",
+        "ngay_hieu_luc": "2015-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      },
+      {
+        "law_id": "nd28-2015-d16",
+        "so_hieu_van_ban": "Nghị định số 28/2015/NĐ-CP (sửa đổi, bổ sung bởi Nghị định 61/2020/NĐ-CP)",
+        "dieu_khoan_diem": "Điều 16, Điều 17, Điều 18 (Hồ sơ và thời hạn giải quyết hưởng trợ cấp thất nghiệp 20 ngày làm việc)",
+        "ngay_hieu_luc": "2020-07-15",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-LD-02",
+      "ten_thu_tuc": "Thủ tục cấp Giấy phép lao động cho người nước ngoài làm việc tại Việt Nam",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Lao động & Bảo hiểm",
+      "cap_tham_quyen": ["Sở Lao động - Thương binh và Xã hội", "Bộ Lao động - Thương binh và Xã hội"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Trước ít nhất 15 ngày kể từ ngày người lao động nước ngoài dự kiến bắt đầu làm việc, người sử dụng lao động nộp hồ sơ đề nghị cấp giấy phép lao động cho Sở LĐTBXH (hoặc Bộ LĐTBXH).",
+      "Bước 2: Cơ quan có thẩm quyền thẩm định văn bản chấp thuận nhu cầu sử dụng người lao động nước ngoài, bằng cấp, kinh nghiệm và lý lịch tư pháp.",
+      "Bước 3: Cấp Giấy phép lao động theo Mẫu số 12/PLI trong thời hạn 05 ngày làm việc (trường hợp không cấp phải có văn bản trả lời nêu rõ lý do)."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "VB-GPLD-01", "ten_giay_to": "Văn bản đề nghị cấp giấy phép lao động của người sử dụng lao động (Mẫu số 11/PLI Nghị định 152/2020/NĐ-CP)"},
+        {"form_id": "GKSK-GPLD-02", "ten_giay_to": "Giấy chứng nhận sức khỏe hoặc giấy khám sức khỏe có giá trị trong thời hạn 12 tháng"},
+        {"form_id": "LLTP-GPLD-03", "ten_giay_to": "Phiếu lý lịch tư pháp (cấp không quá 06 tháng) và Văn bản chứng minh là nhà quản lý, giám đốc điều hành, chuyên gia, lao động kỹ thuật kèm bản sao hộ chiếu"}
+      ],
+      "dieu_kien_bat_buoc": "Người sử dụng lao động phải có văn bản chấp thuận nhu cầu sử dụng người lao động nước ngoài trước khi nộp hồ sơ cấp Giấy phép lao động. Thời hạn của giấy phép lao động tối đa là 02 năm. Các giấy tờ của nước ngoài phải được hợp pháp hóa lãnh sự và dịch ra tiếng Việt có chứng thực."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 5,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận đủ hồ sơ đề nghị cấp giấy phép lao động hợp lệ)",
+      "chi_tiet": "Nộp hồ sơ trước ít nhất 15 ngày so với ngày dự kiến làm việc; cơ quan nhà nước giải quyết cấp giấy phép trong 05 ngày làm việc."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 600000,
+      "mo_ta": "Lệ phí cấp mới Giấy phép lao động cho người nước ngoài do HĐND cấp tỉnh quy định (mức phổ biến: 600.000 VNĐ/giấy phép; cấp lại/gia hạn: 450.000 VNĐ/giấy phép)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "nd152-2020-d11",
+        "so_hieu_van_ban": "Nghị định số 152/2020/NĐ-CP (sửa đổi, bổ sung bởi Nghị định số 70/2023/NĐ-CP)",
+        "dieu_khoan_diem": "Điều 9, Điều 11 (Hồ sơ và trình tự cấp giấy phép lao động trong 05 ngày làm việc)",
+        "ngay_hieu_luc": "2023-09-18",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-BH-01",
+      "ten_thu_tuc": "Thủ tục giải quyết hưởng chế độ Bảo hiểm xã hội (BHXH) một lần",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Lao động & Bảo hiểm",
+      "cap_tham_quyen": ["Cơ quan Bảo hiểm xã hội cấp huyện", "Cơ quan Bảo hiểm xã hội cấp tỉnh"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người lao động chuẩn bị hồ sơ và nộp trực tiếp tại Cơ quan BHXH cấp huyện/tỉnh nơi cư trú hoặc nộp trực tuyến qua ứng dụng VssID / Cổng Dịch vụ công Quốc gia.",
+      "Bước 2: Cơ quan BHXH đối chiếu dữ liệu quá trình đóng BHXH và kiểm tra điều kiện hưởng BHXH một lần.",
+      "Bước 3: Ban hành Quyết định hưởng BHXH một lần, Bản quá trình đóng BHXH và chuyển tiền vào tài khoản ngân hàng của người lao động trong 05 ngày làm việc."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-BHXH-14A", "ten_giay_to": "Đơn đề nghị hưởng bảo hiểm xã hội một lần (Mẫu số 14-HSB)"},
+        {"form_id": "SBHXH-1L-02", "ten_giay_to": "Bản chính Sổ bảo hiểm xã hội đã chốt quá trình đóng"},
+        {"form_id": "HSBA-BHXH-03", "ten_giay_to": "Trích sao/tóm tắt hồ sơ bệnh án (trường hợp mắc bệnh nguy hiểm đến tính mạng) hoặc giấy tờ định cư ở nước ngoài (nếu ra nước ngoài định cư)"}
+      ],
+      "dieu_kien_bat_buoc": "Người lao động có thời gian đóng BHXH dưới 20 năm mà sau 12 tháng nghỉ việc không tiếp tục đóng BHXH và có yêu cầu hưởng BHXH một lần (hoặc đủ tuổi hưởng lương hưu mà chưa đủ năm đóng; hoặc ra nước ngoài định cư; hoặc đang mắc một trong những bệnh nguy hiểm đến tính mạng như ung thư, bại liệt, xơ gan cổ chướng, phong, lao nặng, nhiễm HIV đã chuyển sang giai đoạn AIDS)."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 5,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày cơ quan BHXH nhận đủ hồ sơ theo quy định)",
+      "chi_tiet": "Tối đa 05 ngày làm việc kể từ ngày nhận đủ hồ sơ hợp lệ theo Quyết định 222/QĐ-BHXH (Luật BHXH quy định khung tối đa không quá 10 ngày)."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ) đối với thủ tục giải quyết hưởng chế độ BHXH một lần."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lbhxh2014-d60",
+        "so_hieu_van_ban": "Luật Bảo hiểm xã hội số 58/2014/QH13 và Nghị quyết số 93/2015/QH13",
+        "dieu_khoan_diem": "Điều 60, Điều 109, Điều 110 (Điều kiện, hồ sơ và giải quyết hưởng BHXH một lần)",
+        "ngay_hieu_luc": "2016-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  }
+]
