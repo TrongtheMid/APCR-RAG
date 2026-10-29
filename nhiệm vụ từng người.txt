@@ -3,84 +3,154 @@ BẢNG PHÂN LOẠI FILE VÀ PHÂN CÔNG NHIỆM VỤ THÀNH VIÊN — NHÓM 9
 HỌC PHẦN: INT 3507 2 — BÁO CÁO ĐỊNH HƯỚNG & TRIỂN KHAI HỆ THỐNG
 DỰ ÁN: HỆ THỐNG APCR-RAG (ADMINISTRATIVE & PENAL CRIMINAL RAG)
        TƯ VẤN VỀ THỦ TỤC HÀNH CHÍNH VÀ TỐ TỤNG HÌNH SỰ (MULTI-AGENT RAG)
+KIẾN TRÚC: CLEAN & MODULAR ARCHITECTURE (8 PACKAGE CHUYÊN BIỆT TRONG src/)
 GIẢNG VIÊN HƯỚNG DẪN: TS. NGHIÊM NGUYỄN VIỆT DŨNG
 ================================================================================
 
 1. NGUYỄN HỮU HẢI LONG
 --------------------------------------------------------------------------------
-- Vai trò chính: Phụ trách Dữ liệu Chuẩn hóa, Retriever Agent & Engine Tra cứu Văn bản
-- Danh sách file đảm nhiệm:
+- Vai trò chính: Phụ trách Dữ liệu Chuẩn hóa, Package `src/retriever/` (Retriever Agent & Hybrid Search Engine)
+- Danh sách package & file đảm nhiệm:
   + data/data_procedures.json
     * Bóc tách và chuẩn hóa 23 thủ tục pháp lý thuộc 2 trụ cột (Thủ tục Hành chính
-      Công & Tố tụng Hình sự) theo Lược đồ 6 trường JSON.
+      Công & Tố tụng Hình sự) theo Lược đồ 6 trường JSON chuẩn hóa.
     * Gắn nhãn Temporal Metadata (ĐANG HIỆU LỰC / HẾT HIỆU LỰC, ngay_hieu_luc,
       van_ban_thay_the) phục vụ kiểm tra hiệu lực thời gian và bắt bẫy pháp lý.
-  + src/retriever_agent.py
-    * Module Query Rewriting & Domain Routing (chuyển đổi câu hỏi đời thường sang
-      thuật ngữ pháp lý chuẩn; định tuyến Hành chính vs Tố tụng).
-    * Metadata Filtering (lọc lĩnh vực, cấp thẩm quyền, giai đoạn tố tụng, ngày hiệu lực).
-    * Hybrid Search kết hợp điểm số Rank-BM25 + ChromaDB Vector Store (BGE-M3).
-    * Hàm search_direct_bm25(): API tìm kiếm trực tiếp cho Phân hệ 4 (Zero-LLM,
-      latency ~ 1.5ms, token cost = 0, highlight từ khóa màu vàng).
+  + Package `src/retriever/` (6 module chuyên biệt):
+    * src/retriever/__init__.py
+      - Khởi tạo package Retriever và export các class/hàm public.
+    * src/retriever/tokenizer.py
+      - Tiền xử lý văn bản, chuẩn hóa Unicode tiếng Việt, tách từ ghép pháp lý
+        (`vietnamese_legal_tokenize`) và từ điển đồng nghĩa đời thường -> thuật ngữ luật
+        (`COLLOQUIAL_TO_LEGAL_DICT`).
+    * src/retriever/query_rewriter.py
+      - Module viết lại câu hỏi (`rewrite_and_route_query`): chuyển ngôn ngữ tự nhiên
+        sang truy vấn pháp lý chuẩn và tự động định tuyến lĩnh vực (Hành chính Công vs
+        Tố tụng Hình sự).
+    * src/retriever/metadata_filter.py
+      - Bộ lọc Metadata đa chiều (`filter_procedures_by_metadata`): lọc theo lĩnh vực,
+        cấp thẩm quyền, giai đoạn tố tụng, chỉ lấy văn bản đang hiệu lực và kiểm tra
+        hiệu lực tính đến ngày (`as_of_date`).
+    * src/retriever/bm25_engine.py
+      - Động cơ tìm kiếm từ khóa chính xác `BM25Engine` (Rank-BM25 kết hợp thuật toán
+        Okapi BM25 nội tại) và hàm `highlight_keywords_html` tô sáng từ khóa trực tiếp
+        cho Phân hệ Tra cứu văn bản (Zero-LLM, độ trễ ~1.5ms, chi phí token = 0).
+    * src/retriever/vector_store.py
+      - Động cơ tìm kiếm ngữ nghĩa `LegalVectorStore` tích hợp ChromaDB PersistentClient
+        và hàm nhúng ngữ nghĩa tiếng Việt (`LightweightLegalEmbeddingFunction` / BGE-M3).
+    * src/retriever/agent.py
+      - Tác tử truy hồi trung tâm `RetrieverAgent`: điều phối Pipeline Hybrid Search
+        kết hợp điểm số `0.55 * BM25 + 0.45 * Vector Cosine` kèm điểm thưởng khớp mã
+        thủ tục/số hiệu điều luật và phát hiện văn bản hết hiệu lực.
+  + src/retriever_agent.py (Facade tương thích ngược)
 
 2. VŨ GIA ANH ĐỨC
 --------------------------------------------------------------------------------
-- Vai trò chính: Phụ trách Consultant Agent, Lập luận IRAC & Hệ thống Baseline
-- Danh sách file đảm nhiệm:
-  + src/consultant_agent.py
-    * Thiết kế System Prompt chuẩn lập luận pháp lý IRAC (Issue - Rule - Application - Conclusion).
-    * Cơ chế từ chối trả lời chủ động (Deterministic Refusal) khi câu hỏi ngoài phạm vi
-      hoặc điểm tương đồng dưới ngưỡng an toàn.
-    * Cơ chế tự sửa lỗi (Self-Revision Loop) tiếp nhận critique_feedback từ Judge Agent.
-    * Hàm extract_procedure_graph_data(): Chuyển đổi JSON 6 trường thành Nodes & Edges
-      cho đồ thị trực quan hóa thủ tục bên cột phải giao diện Hỏi — Đáp.
-  + src/baseline_single_agent.py
-    * Xây dựng pipeline Single-Agent RAG truyền thống đối chứng (Fixed-size Chunking
-      500 từ, tìm kiếm vector đơn thuần, sinh tự do 1 bước không qua kiểm chứng 2 lớp).
-    * Làm cơ sở so sánh thực nghiệm định lượng với Multi-Agent RAG.
+- Vai trò chính: Phụ trách Package `src/consultant/` (Consultant Agent & Lập luận IRAC) và Package `src/baseline/` (Hệ thống Baseline đối chứng)
+- Danh sách package & file đảm nhiệm:
+  + Package `src/consultant/` (5 module chuyên biệt):
+    * src/consultant/__init__.py
+      - Khởi tạo package Consultant và export các thành phần lập luận IRAC.
+    * src/consultant/prompts.py
+      - Quản lý System Prompt chuẩn cấu trúc lập luận pháp lý IRAC (Issue - Rule -
+        Application - Conclusion) và Prompt Template tự sửa lỗi khi nhận phản biện.
+    * src/consultant/refusal_guard.py
+      - Hàng rào kiểm soát từ chối trả lời chủ động (`check_out_of_scope`,
+        `build_out_of_scope_irac`, `build_low_confidence_irac`): chặn câu hỏi ngoài
+        phạm vi Hành chính & Tố tụng Hình sự hoặc khi điểm tương đồng dưới ngưỡng an toàn.
+    * src/consultant/irac_synthesizer.py
+      - Bộ tổng hợp lập luận pháp lý 4 bước IRAC (`synthesize_irac_from_procedure`),
+        tự động đối chiếu trường hợp văn bản đã hết hiệu lực và tích hợp cơ chế tự
+        hiệu chỉnh (`Self-Revision Loop`) khi nhận `critique_feedback` từ Judge Agent.
+    * src/consultant/graph_builder.py
+      - Bộ trích xuất cấu trúc đồ thị `extract_procedure_graph_data`: chuyển đổi
+        hồ sơ thủ tục 6 trường JSON thành danh sách Nodes & Edges phục vụ sơ đồ
+        cấu trúc điều luật tương tác trên giao diện Hỏi — Đáp.
+    * src/consultant/agent.py
+      - Tác tử tư vấn `ConsultantAgent`: điều phối toàn bộ quy trình kiểm tra ngưỡng
+        an toàn, tổng hợp lập luận IRAC có trích dẫn chính xác và tự sửa câu trả lời.
+  + Package `src/baseline/` (2 module đối chứng thực nghiệm):
+    * src/baseline/__init__.py
+      - Khởi tạo package Baseline đối chứng.
+    * src/baseline/fixed_chunker.py
+      - Bộ cắt văn bản cố định theo kích thước (`build_fixed_word_chunks` 120-500 từ,
+        overlap 25 từ) mô phỏng cách chia nhỏ truyền thống làm đứt gãy cấu trúc 6 trường.
+    * src/baseline/single_agent_rag.py
+      - Hệ thống đối chứng `BaselineSingleAgentRAG` (1 bước duy nhất, không lọc hiệu lực
+        thời gian, không tách cấu trúc 6 trường, không có Judge Agent kiểm chứng 2 lớp).
+  + src/consultant_agent.py & src/baseline_single_agent.py (Facade tương thích ngược)
 
 3. PHẠM ĐỨC TRỌNG
 --------------------------------------------------------------------------------
-- Vai trò chính: Phụ trách Judge Agent, Điều phối LangGraph, Giao diện 4 Phân hệ & Đánh giá
-- Danh sách file đảm nhiệm:
-  + src/judge_agent.py
-    * Thẩm định chéo 2 lớp:
-      - Lớp 1 (Deterministic Code Verification): Đối soát chính xác tuyệt đối (Exact Match)
-        mã thủ tục, điều luật, biểu mẫu, số tiền lệ phí và số ngày thời hạn tối đa.
-      - Lớp 2 (Semantic Critic): Thẩm định điều kiện bắt buộc (>= 02 người bảo lĩnh,
-        miễn phí tố giác tội phạm, cấm ủy quyền LLTP số 2) và phân cấp thẩm quyền.
-    * Hàm get_legal_misconceptions_catalog(): Danh mục 10 cảnh báo hiểu nhầm phổ biến
-      gắn nhãn NGHIÊM TRỌNG / TRUNG BÌNH / THẤP phục vụ Phân hệ 3.
-  + src/langgraph_workflow.py
-    * Xây dựng đồ thị trạng thái StateGraph trên LangGraph kết nối 3 tác tử
-      (Retriever -> Consultant -> Judge).
-    * Cài đặt các cạnh điều kiện (Conditional Edges): PASS -> Xuất kết quả;
-      FAIL -> Quay lại Consultant tối đa 2 vòng; Quá 2 vòng -> Fallback an toàn.
-  + app_streamlit.py
-    * Phát triển toàn diện giao diện Web Streamlit 4 phân hệ theo mẫu LAWGIC:
-      - Phân hệ 1: Hỏi — Đáp Thủ tục Hành chính Công (IRAC + Đồ thị 6 trường).
-      - Phân hệ 2: Hỏi — Đáp Thủ tục Tố tụng Hình sự (Phân tách theo giai đoạn tố tụng).
-      - Phân hệ 3: Cảnh báo Hiểu nhầm Pháp lý (Dashboard 5 KPI + Đối sánh quan niệm sai).
-      - Phân hệ 4: Tra cứu Văn bản & Thủ tục Tức thì (Zero-LLM + Highlight màu vàng).
+- Vai trò chính: Phụ trách Package `src/judge/` (Judge Agent 2 lớp), Package `src/workflow/` (Điều phối LangGraph), Package `src/evaluation/` (Đánh giá thực nghiệm) & Giao diện Cổng dịch vụ `app_streamlit.py`
+- Danh sách package & file đảm nhiệm:
+  + Package `src/judge/` (4 module thẩm định chéo):
+    * src/judge/__init__.py
+      - Khởi tạo package Judge Agent.
+    * src/judge/layer1_deterministic.py
+      - Lớp kiểm chứng 1 (`verify_layer1_deterministic` - Deterministic Code Verification):
+        dùng Regex & đối sánh chuỗi kiểm tra chính xác tuyệt đối (Exact Match) số hiệu
+        điều luật, mã thủ tục, mã biểu mẫu, mức lệ phí và thời hạn giải quyết tối đa.
+    * src/judge/layer2_semantic.py
+      - Lớp kiểm chứng 2 (`verify_layer2_semantic` - Semantic Critic): thẩm định điều kiện
+        bắt buộc (VD: >= 02 người bảo lĩnh tại Điều 121 BLTTHS, miễn phí tiếp nhận tố giác
+        tội phạm, cấm ủy quyền Phiếu LLTP số 2), cảnh báo văn bản hết hiệu lực và kiểm tra
+        độ nhất quán thẩm quyền giải quyết.
+    * src/judge/misconceptions_catalog.py
+      - Kho dữ liệu 10 quan niệm sai lầm pháp lý phổ biến (`get_legal_misconceptions_catalog`)
+        kèm mức độ rủi ro (NGHIÊM TRỌNG / TRUNG BÌNH / THẤP) và trích dẫn đính chính cho Phân hệ 3.
+    * src/judge/agent.py
+      - Tác tử thẩm định `JudgeAgent`: kết hợp điểm số Lớp 1 và Lớp 2, xuất quyết định
+        `PASS` hoặc `FAIL` kèm hướng dẫn sửa lỗi chi tiết (`critique_feedback`).
+  + Package `src/workflow/` (3 module điều phối LangGraph):
+    * src/workflow/__init__.py
+      - Khởi tạo package điều phối trạng thái Multi-Agent.
+    * src/workflow/state.py
+      - Định nghĩa cấu trúc trạng thái đồ thị `LegalWorkflowState` lưu trữ xuyên suốt
+        giữa 3 tác tử (truy vấn, danh sách ứng viên, bản nháp IRAC, kết quả thẩm định,
+        số vòng lặp sửa lỗi, nhật ký thực thi `workflow_trace`).
+    * src/workflow/edges.py
+      - Hàm định tuyến cạnh điều kiện `route_after_judge`: kiểm tra kết quả
+        Judge (`PASS` -> kết thúc; `FAIL` và `revision_count < 2` -> quay lại Consultant;
+        quá 2 vòng -> kích hoạt Fallback an toàn).
+    * src/workflow/orchestrator.py
+      - Bộ điều phối trung tâm `LegalMultiAgentOrchestrator` và `run_legal_multi_agent_workflow`:
+        lắp ráp `StateGraph` của LangGraph (`retriever -> consultant -> judge` với vòng lặp
+        phản hồi) và hỗ trợ cơ chế Fallback an toàn khi không vượt qua kiểm chứng.
+  + Package `src/evaluation/` (Đánh giá định lượng thực nghiệm):
+    * src/evaluation/__init__.py & src/evaluation/benchmark_runner.py
+      - Hàm `run_full_benchmark_evaluation`: chạy thực nghiệm đối chứng tự động trên bộ 50
+        câu hỏi kiểm thử, tính toán 4 chỉ số định lượng (Recall@3, Faithfulness Score,
+        Hallucination Rate, Self-Correction Rate) giữa Multi-Agent RAG và Single-Agent Baseline.
   + data/benchmark_50_questions.json
-    * Xây dựng bộ 50 câu hỏi kiểm thử thực tế (25 câu Hành chính, 25 câu Hình sự)
-      thuộc 3 cấp độ khó: 15 câu Tra cứu đơn, 20 câu Tình huống, 15 câu Gài bẫy.
-    * Tích hợp chức năng chạy thực nghiệm đánh giá định lượng đối chứng (Recall@K,
-      Faithfulness, Hallucination Rate, Correction Rate) trực tiếp trên Web.
+    * Bộ 50 câu hỏi kiểm thử thực tế (25 câu Hành chính Công, 25 câu Tố tụng Hình sự)
+      chia theo 3 cấp độ khó: 15 câu Tra cứu đơn, 20 câu Tình huống đa điều kiện, 15 câu Gài bẫy.
+  + app_streamlit.py
+    * Cổng thông tin Pháp lý APCR-RAG (Giao diện Đỏ - Trắng chuẩn cổng dịch vụ công)
+      với Trang chủ, 4 phân hệ chức năng cốt lõi (Thủ tục hành chính, Tố tụng hình sự,
+      Cảnh báo hiểu nhầm, Tra cứu văn bản) và trang Hướng dẫn sử dụng & Kiến trúc.
+  + src/judge_agent.py & src/langgraph_workflow.py (Facade tương thích ngược)
 
-4. CÁC FILE CHUNG & CẤU TRÚC HỆ THỐNG (TOÀN NHÓM PHỐI HỢP)
+4. CÁC PACKAGE NỀN TẢNG & FILE DÙNG CHUNG (TOÀN NHÓM PHỐI HỢP)
 --------------------------------------------------------------------------------
-  + src/schema.py
-    * Định nghĩa Pydantic Models dùng chung toàn dự án: Lược đồ 6 trường JSON
-      (ProcedureRecord), Cấu trúc đầu ra IRAC (IRACOutput, CitationMetadata),
-      Kết quả kiểm chứng (JudgeVerificationResult) và Bộ câu hỏi kiểm thử (BenchmarkQuestion).
-  + src/__init__.py
-    * Đóng gói thư mục src thành Python Package.
-  + requirements.txt
-    * Danh sách thư viện phụ thuộc của dự án (langgraph, langchain, chromadb,
-      rank-bm25, pydantic, streamlit, ragas...).
-  + .env.example
-    * File cấu hình mẫu các tham số hệ thống và API Key (Gemini, ChromaDB, Ngưỡng điểm...).
-  + nhiệm vụ từng người.txt
-    * Tài liệu tổng hợp phân công trách nhiệm và ánh xạ file theo từng thành viên.
+  + Package `src/core/` (Cấu hình & Khởi tạo mô hình dùng chung):
+    * src/core/__init__.py
+    * src/core/config.py
+      - Quản lý biến môi trường, đường dẫn dữ liệu (`DATA_PROCEDURES_PATH`,
+        `BENCHMARK_QUESTIONS_PATH`), trọng số Hybrid Search (`BM25_WEIGHT = 0.55`,
+        `VECTOR_WEIGHT = 0.45`) và ngưỡng an toàn (`SIMILARITY_THRESHOLD`, `MAX_REVISION_LOOPS`).
+    * src/core/llm_factory.py
+      - Quản lý kết nối Gemini / OpenAI API và kiểm tra trạng thái kho Vector ChromaDB.
+  + Package `src/schemas/` (4 module định nghĩa Lược đồ dữ liệu Pydantic):
+    * src/schemas/__init__.py
+    * src/schemas/procedure_schema.py (`ProcedureRecord` — Lược đồ 6 trường JSON + Temporal Metadata)
+    * src/schemas/irac_schema.py (`CitationMetadata`, `IRACOutput` — Chuẩn lập luận IRAC)
+    * src/schemas/judge_schema.py (`Layer1VerificationDetail`, `Layer2VerificationDetail`, `JudgeVerificationResult`)
+    * src/schemas/benchmark_schema.py (`BenchmarkQuestion` — Cấu trúc câu hỏi kiểm thử)
+    * src/schema.py (Facade tổng hợp toàn bộ Pydantic Schemas)
+  + Cấu hình môi trường & Giao diện:
+    * .streamlit/config.toml (Cấu hình theme Đỏ - Trắng chủ đạo `#B91C1C` cho Streamlit)
+    * requirements.txt (Danh sách thư viện phụ thuộc của dự án)
+    * .env.example (Tệp mẫu cấu hình tham số môi trường và API Key)
+    * nhiệm vụ từng người.txt (Tài liệu phân công nhiệm vụ và ánh xạ kiến trúc module)
 ================================================================================
