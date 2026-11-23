@@ -93,6 +93,49 @@ class TestWorkflowAndEvaluation(unittest.TestCase):
         self.assertIn("02 người thân thích", res_bail["irac_draft"]["direct_advice"])
         self.assertEqual(res_bail["final_status"], "VERIFIED_PASS")
 
+    def test_expanded_dvc_procedures_and_multiturn_topic_switch(self) -> None:
+        r_gplx = run_legal_multi_agent_workflow(
+            "tôi muốn xin cấp lại giấy phép lái xe",
+            phan_nhom_filter="Thủ tục hành chính",
+        )
+        p_gplx = r_gplx["primary_procedure"]["ma_va_ten_thu_tuc"]
+        self.assertEqual(p_gplx["ma_thu_tuc"], "TTHC-GT-01")
+        self.assertEqual(r_gplx["final_status"], "VERIFIED_PASS")
+        self.assertIn("135.000 VNĐ", r_gplx["irac_draft"]["direct_advice"])
+
+        history = [
+            {
+                "query": "tôi muốn xin cấp lại giấy phép lái xe",
+                "procedure_code": p_gplx["ma_thu_tuc"],
+                "procedure_name": p_gplx["ten_thu_tuc"],
+            }
+        ]
+        # Hỏi nối tiếp về giấy tờ -> giữ nguyên TTHC-GT-01
+        r_docs = run_legal_multi_agent_workflow(
+            "Cần chuẩn bị những giấy tờ gì?",
+            phan_nhom_filter="Thủ tục hành chính",
+            chat_history=history,
+        )
+        self.assertEqual(r_docs["primary_procedure"]["ma_va_ten_thu_tuc"]["ma_thu_tuc"], "TTHC-GT-01")
+        self.assertIn("DON-GPLX-01", r_docs["irac_draft"]["direct_advice"])
+
+        # Đổi chủ đề sang làm hộ chiếu -> tự động chuyển sang TTHC-HC-01
+        r_hc = run_legal_multi_agent_workflow(
+            "Thế thủ tục làm hộ chiếu gắn chíp mất mấy ngày?",
+            phan_nhom_filter="Thủ tục hành chính",
+            chat_history=history,
+        )
+        self.assertEqual(r_hc["primary_procedure"]["ma_va_ten_thu_tuc"]["ma_thu_tuc"], "TTHC-HC-01")
+
+        # Câu hỏi ngoài danh mục 40 thủ tục -> Từ chối an toàn
+        r_visa = run_legal_multi_agent_workflow(
+            "Tôi muốn xin visa du lịch Mỹ",
+            phan_nhom_filter="Thủ tục hành chính",
+            chat_history=history,
+        )
+        self.assertEqual(r_visa["final_status"], "REFUSED_SAFELY")
+        self.assertTrue(r_visa["irac_draft"]["is_refusal"])
+
     def test_ablation_study_and_confusion_matrix(self) -> None:
         questions = load_benchmark_questions()
         self.assertEqual(len(questions), 50)

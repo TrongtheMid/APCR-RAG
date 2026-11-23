@@ -371,78 +371,71 @@ def render_procedure_panel(proc: Optional[Dict[str, Any]]) -> None:
         st.json(proc)
 
 
-def render_answer(state: Dict[str, Any]) -> None:
+def render_turn_assistant_message(state: Dict[str, Any], turn_idx: int) -> None:
+    """Hiển thị một lượt trả lời của Chatbot Chuyên viên Pháp lý APCR-RAG kèm chi tiết IRAC & Judge."""
     draft = state.get("irac_draft") or {}
     ver = state.get("verification_result") or {}
     history = state.get("revision_history") or []
-    status_txt = "Từ chối an toàn" if draft.get("is_refusal") else ("Đạt (PASS)" if ver.get("passed") else "Cảnh báo")
-    h(
-        f"""
-<div class="mini-stats">
-  <div class="mini"><div class="l">Kết quả thẩm định</div><div class="v">{status_txt}</div></div>
-  <div class="mini"><div class="l">Số vòng kiểm chứng</div><div class="v">{len(history)}</div></div>
-  <div class="mini"><div class="l">Độ tin cậy</div><div class="v">{int(float(draft.get("confidence_score", 0)) * 100)}%</div></div>
-  <div class="mini"><div class="l">Thời gian xử lý</div><div class="v">{state.get("total_latency_ms", 0):.0f} ms</div></div>
-</div>
-"""
-    )
+    proc_info = (state.get("primary_procedure") or {}).get("ma_va_ten_thu_tuc") or {}
+    ma_tt = proc_info.get("ma_thu_tuc", "")
+    conf_pct = int(float(draft.get("confidence_score", 0)) * 100)
+    lat_ms = state.get("total_latency_ms", 0)
 
-    left, right = st.columns([1.35, 1], gap="large")
-    with left:
-        st.markdown('<div class="field-lbl">💬 Lời tư vấn trực tiếp dành cho bạn</div>', unsafe_allow_html=True)
-        with st.container(border=True):
-            if draft.get("is_refusal"):
-                h(
-                    """
+    if draft.get("is_refusal"):
+        h(
+            f"""
 <div class="advisor-head">
   <div class="advisor-id">
     <div class="advisor-avt">⚖</div>
     <div>
       <div class="advisor-title">Chuyên viên Tư vấn Pháp lý APCR-RAG</div>
-      <div class="advisor-sub">Cơ chế Từ chối An toàn · Không suy đoán ngoài văn bản luật</div>
+      <div class="advisor-sub">Cơ chế Từ chối An toàn · {lat_ms:.0f} ms</div>
     </div>
   </div>
   <span class="badge b-expired">TỪ CHỐI AN TOÀN</span>
 </div>
 """
-                )
-                st.markdown(draft.get("direct_advice") or draft.get("application", ""))
-                st.caption(f"Lý do hệ thống ghi nhận: {draft.get('refusal_reason')}")
-            else:
-                ver_badge = (
-                    '<span class="badge b-active">✓ ĐÃ KIỂM CHỨNG 2 LỚP</span>'
-                    if ver.get("passed")
-                    else '<span class="badge b-expired">⚠ CẦN ĐỐI CHIẾU THÊM</span>'
-                )
-                h(
-                    f"""
+        )
+        st.markdown(draft.get("direct_advice") or draft.get("application", ""))
+        st.caption(f"Lý do hệ thống ghi nhận: {draft.get('refusal_reason')}")
+        return
+
+    ver_badge = (
+        '<span class="badge b-active">✓ ĐÃ KIỂM CHỨNG 2 LỚP</span>'
+        if ver.get("passed")
+        else '<span class="badge b-expired">⚠ CẦN ĐỐI CHIẾU THÊM</span>'
+    )
+    code_badge = f'<span class="badge b-grey" style="margin-right:6px;">{esc(ma_tt)}</span>' if ma_tt else ""
+    h(
+        f"""
 <div class="advisor-head">
   <div class="advisor-id">
     <div class="advisor-avt">⚖</div>
     <div>
       <div class="advisor-title">Chuyên viên Tư vấn Pháp lý APCR-RAG</div>
-      <div class="advisor-sub">Giải đáp trực tiếp tình huống · Đã đối soát căn cứ pháp luật &amp; lệ phí</div>
+      <div class="advisor-sub">Độ tin cậy {conf_pct}% · Kiểm chứng {len(history)} vòng · {lat_ms:.0f} ms</div>
     </div>
   </div>
-  {ver_badge}
+  <div>{code_badge}{ver_badge}</div>
 </div>
 """
-                )
-                direct_txt = (draft.get("direct_advice") or "").strip() or (draft.get("conclusion") or "")
-                st.markdown(direct_txt)
+    )
+    direct_txt = (draft.get("direct_advice") or "").strip() or (draft.get("conclusion") or "")
+    st.markdown(direct_txt)
 
-        if not draft.get("is_refusal"):
-            with st.expander("📑 Chi tiết phân tích & căn cứ pháp luật (chuẩn IRAC)", expanded=False):
-                st.markdown('<span class="irac-lbl irac-i">I · Vấn đề của bạn</span>', unsafe_allow_html=True)
-                st.markdown(draft.get("issue", ""))
-                st.markdown('<span class="irac-lbl irac-r">R · Căn cứ pháp luật</span>', unsafe_allow_html=True)
-                st.markdown(draft.get("rule", ""))
-                st.markdown('<span class="irac-lbl irac-a">A · Hướng dẫn thực hiện chi tiết</span>', unsafe_allow_html=True)
-                st.markdown(draft.get("application", ""))
-                st.markdown('<span class="irac-lbl irac-c">C · Kết luận &amp; lưu ý</span>', unsafe_allow_html=True)
-                st.markdown(draft.get("conclusion", ""))
-
-        with st.expander(f"🛡️ Nhật ký thẩm định 2 lớp của Judge Agent — {state.get('final_status', '')}", expanded=len(history) > 1):
+    c_irac, c_judge = st.columns(2)
+    with c_irac:
+        with st.expander(f"📑 Phân tích pháp lý IRAC (#{turn_idx})", expanded=False):
+            st.markdown('<span class="irac-lbl irac-i">I · Vấn đề của bạn</span>', unsafe_allow_html=True)
+            st.markdown(draft.get("issue", ""))
+            st.markdown('<span class="irac-lbl irac-r">R · Căn cứ pháp luật</span>', unsafe_allow_html=True)
+            st.markdown(draft.get("rule", ""))
+            st.markdown('<span class="irac-lbl irac-a">A · Hướng dẫn chi tiết</span>', unsafe_allow_html=True)
+            st.markdown(draft.get("application", ""))
+            st.markdown('<span class="irac-lbl irac-c">C · Kết luận &amp; lưu ý</span>', unsafe_allow_html=True)
+            st.markdown(draft.get("conclusion", ""))
+    with c_judge:
+        with st.expander(f"🛡️ Nhật ký Judge 2 lớp ({state.get('final_status', '')})", expanded=len(history) > 1):
             for step in history:
                 v = step["verification"]
                 tag = "Bản nháp đầu" if step["iteration"] == 1 else "Sau tự sửa lỗi"
@@ -450,65 +443,55 @@ def render_answer(state: Dict[str, Any]) -> None:
                 l2_sc = int(float(v.get("claim_coverage_score", 1.0)) * 100)
                 v_claims = v.get("verified_claims_count", 0)
                 t_claims = v.get("total_claims_count", 0)
-                fees_txt = ", ".join(f"{f:,} đ".replace(",", ".") for f in v.get("prose_extracted_fees", [])) or "Miễn phí / 0 đ"
-                days_txt = ", ".join(f"{d} ngày" for d in v.get("prose_extracted_days", [])) or "—"
                 if v["passed"]:
                     st.success(f"**Vòng {step['iteration']} ({tag}) — ĐẠT.** {v['critique_feedback']}")
                 else:
                     errs = "\n".join(f"- {e}" for e in v["layer1_errors"] + v["layer2_errors"])
-                    st.error(f"**Vòng {step['iteration']} ({tag}) — PHÁT HIỆN LỖI, yêu cầu Consultant sửa:**\n{errs}")
+                    st.error(f"**Vòng {step['iteration']} ({tag}) — PHÁT HIỆN LỖI:**\n{errs}")
                 st.caption(
-                    f"• Lớp 1 (Exact Match & Regex văn xuôi): **{l1_sc}%** | Bóc tách từ văn bản: Lệ phí [{fees_txt}] · Thời hạn [{days_txt}]  \n"
-                    f"• Lớp 2 (Claim-Level Semantic Coverage): **{l2_sc}%** ({v_claims}/{t_claims} mệnh đề điều kiện bắt buộc)"
+                    f"Lớp 1 (Regex & Exact Match): **{l1_sc}%** · Lớp 2 (Claim Coverage): **{l2_sc}%** ({v_claims}/{t_claims} mệnh đề)"
                 )
-
-        trace = state.get("workflow_trace") or []
-        if trace:
-            with st.expander(f"⚙️ Tiến trình thực thi từng Agent ({state.get('execution_engine', 'LangGraph')})"):
-                for idx_t, tr in enumerate(trace, start=1):
-                    st.markdown(f"**Bước {idx_t} · {tr['label']}** (`{tr['latency_ms']} ms`) — {tr['summary']}")
-
-        routing = state.get("routing_info") or {}
-        if routing.get("matched_expansions"):
-            st.caption(f"🔎 Truy vấn đã được chuẩn hóa thuật ngữ · Miền: **{routing.get('detected_domain')}**")
-    with right:
-        st.markdown('<div class="field-lbl">Hồ sơ thủ tục được truy xuất</div>', unsafe_allow_html=True)
-        render_procedure_panel(state.get("primary_procedure"))
-
-
-def set_query(key: str, value: str) -> None:
-    st.session_state[key] = value
 
 
 def render_qa_page(kind: str) -> None:
     is_tthc = kind == "hanh_chinh"
-    q_key, res_key = f"{kind}_question", f"{kind}_result"
+    turns_key = f"{kind}_chat_turns"
+    pending_key = f"{kind}_pending_q"
 
     if is_tthc:
         page_banner(
-            "Hỏi — Đáp Thủ tục hành chính công",
-            "Hộ tịch · Cư trú & Căn cước · Lao động & Bảo hiểm. Mỗi câu trả lời đều dẫn chiếu mã thủ tục, "
-            "điều luật, biểu mẫu và được Judge Agent đối soát lệ phí, thời hạn với dữ liệu gốc.",
+            "Chatbot Tư vấn Thủ tục hành chính công (Đa lượt)",
+            "Hộ tịch · Cư trú & Căn cước · Giao thông & Phương tiện · Hộ chiếu · Đất đai & Xây dựng · Kinh doanh & Thuế · Lao động & Bảo hiểm. "
+            "Bạn có thể hỏi liên tiếp nhiều câu hỏi như đang trò chuyện với chuyên viên tư vấn.",
         )
         samples = [
-            "Đăng ký khai sinh cho con có phải nộp Sổ hộ khẩu giấy không, lệ phí bao nhiêu?",
+            "Tôi muốn xin cấp lại giấy phép lái xe",
             "CMND 9 số cấp năm 2012 thì năm 2025 còn dùng được không?",
-            "Kết hôn với người nước ngoài nộp hồ sơ ở UBND xã hay huyện?",
-            "Nghỉ việc bao lâu thì phải nộp hồ sơ trợ cấp thất nghiệp?",
+            "Thủ tục làm hộ chiếu phổ thông gắn chíp online mất mấy ngày?",
+            "Sang tên Sổ đỏ nhà đất nộp hồ sơ ở đâu và bao lâu?",
         ]
-        linh_vuc_opts = ["Tất cả", "Hộ tịch", "Cư trú & Căn cước", "Lao động & Bảo hiểm"]
+        linh_vuc_opts = [
+            "Tất cả",
+            "Hộ tịch",
+            "Cư trú & Căn cước",
+            "Giao thông & Phương tiện",
+            "Xuất nhập cảnh & Hộ chiếu",
+            "Đất đai & Xây dựng",
+            "Kinh doanh & Thuế",
+            "Lao động & Bảo hiểm",
+        ]
         phan_nhom = "Thủ tục hành chính"
     else:
         page_banner(
-            "Hỏi — Đáp Thủ tục Tố tụng hình sự",
-            "Tố giác tội phạm · Biện pháp ngăn chặn · Xóa án tích & Lý lịch tư pháp · Kháng cáo & Thi hành án. "
-            "Hệ thống xác định đúng cơ quan thụ lý theo từng giai đoạn tố tụng.",
+            "Chatbot Tư vấn Thủ tục Tố tụng hình sự (Đa lượt)",
+            "Tố giác tội phạm · Biện pháp ngăn chặn · Xóa án tích & Lý lịch tư pháp · Kháng cáo & Thi hành án · Khiếu nại & Trợ giúp pháp lý. "
+            "Hỗ trợ hỏi đáp liên tục nhiều lượt theo từng tình huống.",
         )
         samples = [
             "Chỉ một mình tôi đứng ra làm đơn bảo lĩnh cho em trai có được không?",
             "Bị lừa đảo qua mạng, có người đòi 2 triệu lệ phí thụ lý đơn tố giác có đúng không?",
             "Thời hạn kháng cáo bản án hình sự sơ thẩm là bao nhiêu ngày?",
-            "Có được ủy quyền cho mẹ làm hộ Phiếu lý lịch tư pháp số 2 không?",
+            "Người thuộc hộ nghèo bị buộc tội có được cử luật sư bào chữa miễn phí không?",
         ]
         linh_vuc_opts = [
             "Tất cả",
@@ -519,18 +502,13 @@ def render_qa_page(kind: str) -> None:
         ]
         phan_nhom = "Tố tụng hình sự"
 
-    if q_key not in st.session_state:
-        st.session_state[q_key] = samples[0]
-
+    # Thanh bộ lọc cấu hình & câu hỏi mẫu
     with st.container(border=True):
-        st.markdown('<div class="field-lbl">Nội dung câu hỏi / tình huống</div>', unsafe_allow_html=True)
-        st.text_area("Câu hỏi", key=q_key, height=90, label_visibility="collapsed")
-
-        c1, c2, c3, c4 = st.columns([2.2, 1.3, 1.9, 1.0])
+        c1, c2, c3, c4 = st.columns([2.1, 1.2, 1.8, 1.1])
         with c1:
-            linh_vuc = st.selectbox("Lĩnh vực", linh_vuc_opts, key=f"{kind}_lv")
+            linh_vuc = st.selectbox("Lĩnh vực lọc", linh_vuc_opts, key=f"{kind}_lv")
         with c2:
-            eff_date = st.date_input("Hiệu lực tính đến ngày", value=datetime.date.today(), format="DD/MM/YYYY", key=f"{kind}_date")
+            eff_date = st.date_input("Hiệu lực đến ngày", value=datetime.date.today(), format="DD/MM/YYYY", key=f"{kind}_date")
         with c3:
             giai_doan = None
             if not is_tthc:
@@ -539,80 +517,126 @@ def render_qa_page(kind: str) -> None:
                     ["Tất cả", "Khởi tố - Giải quyết nguồn tin về tội phạm", "Điều tra", "Truy tố", "Xét xử", "Thi hành án"],
                     key=f"{kind}_gd",
                 )
-            else:
-                st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-            simulate = st.checkbox("Demo: cố ý sai ở bản nháp đầu", key=f"{kind}_sim",
-                                   help="Bản nháp đầu bị làm sai lệ phí/thời hạn để minh họa Judge Agent bắt lỗi và vòng tự sửa.")
+            simulate = st.checkbox(
+                "Demo: cố ý sai ở bản nháp đầu",
+                key=f"{kind}_sim",
+                help="Giả lập bản nháp đầu sai lệ phí/thời hạn để xem Judge Agent bắt lỗi và tự sửa.",
+            )
         with c4:
-            st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-            ask = st.button("Gửi câu hỏi", type="primary", key=f"{kind}_ask", width="stretch")
+            st.markdown("<div style='height:26px'></div>", unsafe_allow_html=True)
+            if st.button("🗑️ Hội thoại mới", key=f"{kind}_reset", width="stretch"):
+                st.session_state[turns_key] = []
+                st.rerun()
 
-        st.markdown('<div class="field-lbl" style="margin-top:6px;">Câu hỏi gợi ý</div>', unsafe_allow_html=True)
+        st.markdown('<div class="field-lbl" style="margin-top:4px;">💡 Bấm chọn nhanh chủ đề mẫu để hỏi Chatbot</div>', unsafe_allow_html=True)
         s_cols = st.columns(len(samples))
         for i, s in enumerate(samples):
-            s_cols[i].button(s, key=f"{kind}_s{i}", on_click=set_query, args=(q_key, s), width="stretch")
+            if s_cols[i].button(s, key=f"{kind}_s{i}", width="stretch"):
+                st.session_state[pending_key] = s
 
-    hist_key = f"{kind}_history"
-    if hist_key not in st.session_state:
-        st.session_state[hist_key] = []
+    if turns_key not in st.session_state:
+        st.session_state[turns_key] = []
 
-    if ask or res_key not in st.session_state:
+    # Khởi tạo câu hỏi mở đầu mặc định nếu phiên chat đang trống để màn hình có sẵn ví dụ
+    if not st.session_state[turns_key] and not st.session_state.get(pending_key):
+        init_state = run_legal_multi_agent_workflow(
+            query=samples[0],
+            phan_nhom_filter=phan_nhom,
+            linh_vuc_filter=linh_vuc,
+            giai_doan_filter=giai_doan,
+            effective_date=str(eff_date) if eff_date else None,
+            only_active=True,
+            simulate_initial_error=simulate,
+            chat_history=[],
+        )
+        st.session_state[turns_key].append({"query": samples[0], "state": init_state})
+
+    # Ô nhập câu hỏi mới của Chatbot (đặt trước để bắt sự kiện gửi ngay trong lượt rerun)
+    user_typed_q = st.chat_input(
+        "Nhập câu hỏi tiếp theo của bạn (VD: Cần chuẩn bị giấy tờ gì? Các bước làm thế nào? Lệ phí bao nhiêu? Hoặc hỏi thủ tục khác)...",
+        key=f"{kind}_chat_input",
+    )
+    incoming_query: Optional[str] = user_typed_q or st.session_state.pop(pending_key, None)
+
+    if incoming_query and incoming_query.strip():
+        q_clean = incoming_query.strip()
+        history_context: List[Dict[str, str]] = []
+        for t in st.session_state[turns_key][-5:]:
+            p_info = ((t["state"].get("primary_procedure") or {}).get("ma_va_ten_thu_tuc")) or {}
+            history_context.append(
+                {
+                    "query": t["query"],
+                    "procedure_code": p_info.get("ma_thu_tuc", ""),
+                    "procedure_name": p_info.get("ten_thu_tuc", ""),
+                }
+            )
+
         final_state: Dict[str, Any] = {}
-        with st.status("Đang điều phối 3 tác tử (Retriever → Consultant → Judge)...", expanded=bool(ask)) as status_box:
+        with st.status("Chuyên viên đang tra cứu hồ sơ, lập luận IRAC và thẩm định 2 lớp...", expanded=True) as status_box:
             for event in stream_legal_multi_agent_workflow(
-                query=st.session_state[q_key],
+                query=q_clean,
                 phan_nhom_filter=phan_nhom,
                 linh_vuc_filter=linh_vuc,
                 giai_doan_filter=giai_doan,
                 effective_date=str(eff_date) if eff_date else None,
                 only_active=True,
                 simulate_initial_error=simulate,
-                chat_history=st.session_state[hist_key],
+                chat_history=history_context,
             ):
                 if event["node"] != "__end__":
                     st.write(f"• **{event['label']}** (`{event['latency_ms']} ms`): {event['summary']}")
                 final_state = event["state"]
             status_box.update(
-                label=f"Hoàn tất tư vấn ({final_state.get('final_status', 'DONE')} · {final_state.get('total_latency_ms', 0):.0f} ms)",
+                label=f"Đã trả lời ({final_state.get('final_status', 'DONE')} · {final_state.get('total_latency_ms', 0):.0f} ms)",
                 state="complete",
                 expanded=False,
             )
-        st.session_state[res_key] = final_state
-        if ask:
-            proc_info = (final_state.get("primary_procedure") or {}).get("ma_va_ten_thu_tuc") or {}
-            st.session_state[hist_key].append(
-                {
-                    "query": st.session_state[q_key],
-                    "procedure_code": proc_info.get("ma_thu_tuc", ""),
-                    "procedure_name": proc_info.get("ten_thu_tuc", ""),
-                    "status": final_state.get("final_status", ""),
-                }
-            )
-            st.session_state[hist_key] = st.session_state[hist_key][-5:]
+        st.session_state[turns_key].append({"query": q_clean, "state": final_state})
 
-    state = st.session_state[res_key]
+    turns: List[Dict[str, Any]] = st.session_state[turns_key]
+    latest_state = turns[-1]["state"]
 
     if not is_tthc:
         stages = ["Khởi tố - Giải quyết nguồn tin về tội phạm", "Điều tra", "Truy tố", "Xét xử", "Thi hành án"]
         short = ["Tiếp nhận nguồn tin", "Điều tra", "Truy tố", "Xét xử", "Thi hành án"]
-        proc = state.get("primary_procedure") or {}
+        proc = latest_state.get("primary_procedure") or {}
         active = set((proc.get("ma_va_ten_thu_tuc") or {}).get("giai_doan_to_tung", []))
         steps = "".join(
             f'<div class="tl-step {"on" if st_full in active else ""}"><span class="tl-dot"></span>{lbl}</div>'
             for st_full, lbl in zip(stages, short)
         )
-        st.markdown('<div class="field-lbl" style="margin-top:8px;">Giai đoạn tố tụng áp dụng</div>', unsafe_allow_html=True)
+        st.markdown('<div class="field-lbl" style="margin-top:8px;">Giai đoạn tố tụng của lượt tư vấn mới nhất</div>', unsafe_allow_html=True)
         h(f'<div class="timeline">{steps}</div>')
 
-    render_answer(state)
+    left, right = st.columns([1.4, 1], gap="large")
+    with left:
+        st.markdown(
+            f'<div class="field-lbl">💬 Luồng hội thoại tư vấn ({len(turns)} câu hỏi trong phiên)</div>',
+            unsafe_allow_html=True,
+        )
+        for idx, turn in enumerate(turns, start=1):
+            with st.chat_message("user"):
+                st.markdown(f"**Bạn:** {turn['query']}")
+            with st.chat_message("assistant"):
+                render_turn_assistant_message(turn["state"], turn_idx=idx)
 
-    if st.session_state[hist_key]:
-        with st.expander(f"💬 Lịch sử hội thoại đa lượt trong phiên ({len(st.session_state[hist_key])} lượt)"):
-            for i_h, turn in enumerate(reversed(st.session_state[hist_key]), start=1):
-                st.caption(f"{i_h}. “{turn['query']}” → `{turn['procedure_code'] or 'N/A'}` ({turn['status']})")
-            if st.button("Xóa lịch sử hội thoại", key=f"{kind}_clear_hist"):
-                st.session_state[hist_key] = []
+        # Gợi ý câu hỏi nối tiếp nhanh ngay dưới câu trả lời mới nhất
+        st.markdown('<div class="field-lbl" style="margin-top:8px;">↪️ Hỏi tiếp nhanh về thủ tục đang tư vấn</div>', unsafe_allow_html=True)
+        followups = [
+            "📎 Cần chuẩn bị những giấy tờ gì?",
+            "📋 Trình tự các bước làm thế nào?",
+            "💰 Lệ phí cụ thể bao nhiêu?",
+            "📍 Nộp hồ sơ ở cơ quan nào?",
+        ]
+        f_cols = st.columns(4)
+        for j, fq in enumerate(followups):
+            if f_cols[j].button(fq, key=f"{kind}_fq_{j}", width="stretch"):
+                st.session_state[pending_key] = fq
                 st.rerun()
+
+    with right:
+        st.markdown('<div class="field-lbl">📑 Hồ sơ thủ tục &amp; Sơ đồ 6 trường đang tư vấn</div>', unsafe_allow_html=True)
+        render_procedure_panel(latest_state.get("primary_procedure"))
 
 
 # ==============================================================================

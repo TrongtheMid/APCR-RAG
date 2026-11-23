@@ -109,12 +109,15 @@ class RetrieverAgent:
 
         query_tokens = tokenize_vietnamese(rewritten_query)
         bm25_raw_scores = self.bm25.get_scores(query_tokens)
-        max_bm25 = (
+        raw_max = (
             max(bm25_raw_scores)
             if len(bm25_raw_scores) > 0 and max(bm25_raw_scores) > 0
             else 1.0
         )
-        bm25_norm_scores = [float(s / max_bm25) for s in bm25_raw_scores]
+        # Chống thổi phồng điểm BM25 thành 1.0 khi câu hỏi không khớp từ khóa pháp lý mở rộng nào
+        has_legal_expansion = bool(routing_info.get("matched_expansions"))
+        norm_denom = raw_max if has_legal_expansion else max(raw_max, 14.0)
+        bm25_norm_scores = [float(min(1.0, s / norm_denom)) for s in bm25_raw_scores]
 
         vector_scores_map = query_chroma_scores(
             self.chroma_collection,

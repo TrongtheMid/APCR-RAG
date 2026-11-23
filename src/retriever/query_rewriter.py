@@ -1,6 +1,6 @@
 """
 NHÁNH NGUYỄN HỮU HẢI LONG — Module Query Rewriting & Domain Routing:
-- Chuyển đổi câu hỏi đời thường của người dân thành truy vấn pháp lý chuẩn (kèm mã thủ tục/điều luật).
+- Chuyển đổi câu hỏi đời thường của người dân thành truy vấn pháp lý chuẩn (kèm mã thủ tục/điều luật) cho 40 thủ tục.
 - Tự động phân định câu hỏi thuộc nhóm 'Thủ tục hành chính' hay 'Tố tụng hình sự'.
 """
 
@@ -61,6 +61,21 @@ COLLOQUIAL_TO_LEGAL_MAP: List[Tuple[List[str], str, Optional[str]]] = [
         "Tố tụng hình sự",
     ),
     (
+        ["khiếu nại tố tụng", "khiếu nại quyết định", "khiếu nại lệnh bắt", "khiếu nại điều tra viên", "không khởi tố"],
+        "Thủ tục khiếu nại quyết định hành vi tố tụng trong tố tụng hình sự Điều 475 BLTTHS TTHS-KN-475",
+        "Tố tụng hình sự",
+    ),
+    (
+        ["trợ giúp pháp lý", "luật sư miễn phí", "bào chữa miễn phí", "hộ nghèo bị buộc tội"],
+        "Thủ tục yêu cầu Trợ giúp pháp lý miễn phí cử Luật sư bào chữa Điều 7 Luật Trợ giúp pháp lý TTHS-TGPL-007",
+        "Tố tụng hình sự",
+    ),
+    (
+        ["liên thông khai sinh", "khai sinh liên thông", "3 trong 1", "khai sinh thường trú bhyt"],
+        "Thủ tục liên thông điện tử đăng ký khai sinh thường trú cấp thẻ BHYT cho trẻ dưới 6 tuổi Nghị định 63/2024/NĐ-CP TTHC-HT-06",
+        "Thủ tục hành chính",
+    ),
+    (
         ["khai sinh", "đăng ký khai sinh", "giấy chứng sinh", "mới sinh con"],
         "Thủ tục đăng ký khai sinh thông thường Điều 15 Điều 16 Luật Hộ tịch TTHC-HT-01 UBND cấp xã",
         "Thủ tục hành chính",
@@ -71,7 +86,7 @@ COLLOQUIAL_TO_LEGAL_MAP: List[Tuple[List[str], str, Optional[str]]] = [
         "Thủ tục hành chính",
     ),
     (
-        ["kết hôn trong nước", "giấy chứng nhận kết hôn"],
+        ["kết hôn trong nước", "giấy chứng nhận kết hôn", "đăng ký kết hôn"],
         "Thủ tục đăng ký kết hôn trong nước Điều 17 Điều 18 Luật Hộ tịch TTHC-HT-02 UBND cấp xã",
         "Thủ tục hành chính",
     ),
@@ -86,6 +101,11 @@ COLLOQUIAL_TO_LEGAL_MAP: List[Tuple[List[str], str, Optional[str]]] = [
         "Thủ tục hành chính",
     ),
     (
+        ["sao y", "chứng thực bản sao", "công chứng bản sao", "sao y bản chính"],
+        "Thủ tục chứng thực bản sao từ bản chính Nghị định 23/2015/NĐ-CP TTHC-HT-07 UBND cấp xã",
+        "Thủ tục hành chính",
+    ),
+    (
         ["thường trú", "nhập khẩu", "sổ hộ khẩu", "hk07", "ct01"],
         "Thủ tục đăng ký thường trú Luật Cư trú 2020 Điều 20 TTHC-CT-01 Công an cấp xã bãi bỏ Sổ hộ khẩu giấy",
         "Thủ tục hành chính",
@@ -93,6 +113,16 @@ COLLOQUIAL_TO_LEGAL_MAP: List[Tuple[List[str], str, Optional[str]]] = [
     (
         ["tạm trú", "gia hạn tạm trú", "ở trọ"],
         "Thủ tục đăng ký tạm trú Luật Cư trú 2020 Điều 27 TTHC-CT-02 Công an cấp xã",
+        "Thủ tục hành chính",
+    ),
+    (
+        ["định danh điện tử", "vneid mức 2", "tài khoản định danh", "kích hoạt vneid"],
+        "Thủ tục cấp tài khoản định danh điện tử mức độ 2 VNeID Nghị định 69/2024/NĐ-CP TTHC-CT-03",
+        "Thủ tục hành chính",
+    ),
+    (
+        ["tạm vắng", "khai báo tạm vắng", "đi khỏi nơi cư trú"],
+        "Thủ tục khai báo tạm vắng Luật Cư trú 2020 Điều 31 TTHC-CT-04 Công an cấp xã",
         "Thủ tục hành chính",
     ),
     (
@@ -113,6 +143,61 @@ COLLOQUIAL_TO_LEGAL_MAP: List[Tuple[List[str], str, Optional[str]]] = [
     (
         ["bhxh một lần", "bảo hiểm xã hội 1 lần", "rút bhxh", "rút bảo hiểm xã hội"],
         "Thủ tục giải quyết hưởng chế độ Bảo hiểm xã hội một lần Điều 60 Luật BHXH TTHC-BH-01",
+        "Thủ tục hành chính",
+    ),
+    (
+        ["thẻ bhyt", "bảo hiểm y tế", "đổi thẻ bhyt", "cấp lại thẻ bhyt", "bhyt hộ gia đình"],
+        "Thủ tục cấp lại đổi thẻ Bảo hiểm y tế BHYT Luật Bảo hiểm y tế TTHC-BH-02",
+        "Thủ tục hành chính",
+    ),
+    (
+        ["thai sản", "chế độ thai sản", "sinh con hưởng bhxh", "tiền thai sản"],
+        "Thủ tục giải quyết hưởng chế độ thai sản Điều 31 Luật BHXH TTHC-BH-03",
+        "Thủ tục hành chính",
+    ),
+    (
+        ["giấy phép lái xe", "bằng lái xe", "gplx", "đổi bằng lái", "mất bằng lái", "lái xe"],
+        "Thủ tục cấp đổi cấp lại Giấy phép lái xe Thông tư 12/2017/TT-BGTVT TTHC-GT-01 TTHC-GT-01 Sở Giao thông vận tải",
+        "Thủ tục hành chính",
+    ),
+    (
+        ["đăng ký xe", "biển số xe", "biển số định danh", "sang tên xe", "cà vẹt xe"],
+        "Thủ tục đăng ký cấp biển số xe mô tô ô tô biển số định danh Thông tư 24/2023/TT-BCA TTHC-GT-02",
+        "Thủ tục hành chính",
+    ),
+    (
+        ["hộ chiếu", "passport", "hộ chiếu gắn chíp", "làm hộ chiếu", "cấp hộ chiếu"],
+        "Thủ tục cấp hộ chiếu phổ thông ở trong nước Luật Xuất cảnh nhập cảnh TTHC-HC-01 TTHC-HC-01",
+        "Thủ tục hành chính",
+    ),
+    (
+        ["sang tên sổ đỏ", "biến động đất đai", "chuyển nhượng đất", "tặng cho đất", "sang tên nhà đất"],
+        "Thủ tục đăng ký biến động đất đai sang tên Sổ đỏ Luật Đất đai 2024 Nghị định 101/2024/NĐ-CP TTHC-DD-01",
+        "Thủ tục hành chính",
+    ),
+    (
+        ["cấp sổ đỏ lần đầu", "làm sổ đỏ lần đầu", "cấp giấy chứng nhận quyền sử dụng đất lần đầu", "làm sổ đỏ"],
+        "Thủ tục đăng ký đất đai cấp Giấy chứng nhận quyền sử dụng đất Sổ đỏ lần đầu Luật Đất đai 2024 TTHC-DD-02",
+        "Thủ tục hành chính",
+    ),
+    (
+        ["giấy phép xây dựng", "xin phép xây nhà", "xây dựng nhà ở"],
+        "Thủ tục cấp Giấy phép xây dựng mới đối với nhà ở riêng lẻ Luật Xây dựng TTHC-DD-03 UBND cấp huyện",
+        "Thủ tục hành chính",
+    ),
+    (
+        ["hộ kinh doanh", "đăng ký hộ kinh doanh", "kinh doanh cá thể", "mở cửa hàng"],
+        "Thủ tục đăng ký thành lập Hộ kinh doanh cá thể Nghị định 01/2021/NĐ-CP TTHC-KD-01",
+        "Thủ tục hành chính",
+    ),
+    (
+        ["thành lập doanh nghiệp", "thành lập công ty", "mở công ty", "đăng ký doanh nghiệp"],
+        "Thủ tục đăng ký thành lập mới Doanh nghiệp Công ty TNHH Cổ phần Luật Doanh nghiệp 2020 TTHC-KD-02",
+        "Thủ tục hành chính",
+    ),
+    (
+        ["quyết toán thuế", "hoàn thuế", "thuế thu nhập cá nhân", "thuế tncn", "etax mobile"],
+        "Thủ tục quyết toán và hoàn thuế thu nhập cá nhân TNCN Luật Quản lý thuế TTHC-KD-03",
         "Thủ tục hành chính",
     ),
 ]
@@ -139,7 +224,7 @@ def rewrite_query_and_route(
         criminal_markers = [
             "bị can", "bị cáo", "tạm giam", "tạm giữ", "tội phạm", "khởi tố",
             "điều tra", "viện kiểm sát", "xét xử", "án tích", "kháng cáo", "án phạt tù",
-            "bảo lĩnh", "tố giác", "giám định", "lý lịch tư pháp",
+            "bảo lĩnh", "tố giác", "giám định", "lý lịch tư pháp", "bào chữa",
         ]
         if any(m in q_lower for m in criminal_markers):
             detected_domain = "Tố tụng hình sự"

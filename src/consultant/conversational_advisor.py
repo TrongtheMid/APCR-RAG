@@ -1,8 +1,8 @@
 """
 NHÁNH VŨ GIA ANH ĐỨC — Module Conversational Legal Advisor:
 Chuyển đổi dữ liệu JSON 6 trường thành lời tư vấn tự nhiên, ấm áp và sát tình huống
-như một chuyên viên pháp lý đang trò chuyện trực tiếp với người dân, trả lời thẳng vào
-trọng tâm câu hỏi (Có/Không, Ở đâu, Bao nhiêu tiền, Mấy ngày, Tại sao) trước khi đi vào chi tiết.
+như một chuyên viên pháp lý đang trò chuyện trực tiếp trong Chatbot đa lượt, trả lời thẳng vào
+trọng tâm câu hỏi (Có/Không, Ở đâu, Bao nhiêu tiền, Mấy ngày, Giấy tờ gì, Các bước thế nào).
 """
 
 from __future__ import annotations
@@ -37,6 +37,83 @@ def _fmt_auth_natural(cap_tq: List[str]) -> str:
     if len(cap_tq) == 2:
         return f"{cap_tq[0]} hoặc {cap_tq[1]}"
     return f"{', '.join(cap_tq[:-1])} hoặc {cap_tq[-1]}"
+
+
+def _build_followup_aspect_reply(
+    raw_user_query: str,
+    ten_tt: str,
+    cap_tq: List[str],
+    steps: List[str],
+    ho_so: Dict[str, Any],
+    thoi_han: Dict[str, Any],
+    le_phi: Dict[str, Any],
+    laws: List[Dict[str, Any]],
+) -> Optional[str]:
+    """
+    Khi người dùng hỏi nối tiếp trong Chatbot về một khía cạnh cụ thể (lệ phí, thời hạn,
+    nơi nộp, thành phần giấy tờ, các bước thực hiện, điều kiện bắt buộc), trả lời tập trung
+    ngay vào khía cạnh đó như một cuộc trò chuyện tự nhiên.
+    """
+    # Lấy phần câu hỏi gốc trước khi ghép "(liên quan đến thủ tục trước đó: ...)"
+    q_core = raw_user_query.split("(liên quan đến thủ tục trước đó:")[0].strip().lower()
+    if len(q_core.split()) > 16:
+        return None
+
+    auth_str = _fmt_auth_natural(cap_tq)
+    so_ngay = int(thoi_han["so_ngay_toi_da"])
+    days_str = _fmt_days_natural(so_ngay, thoi_han["don_vi_tinh"])
+    muc_phi = int(le_phi["muc_phi_vnd"])
+    fee_str = _fmt_fee_natural(muc_phi)
+    forms_bullets = "\n".join(
+        f"- **{g['ten_giay_to']}** *(mã biểu mẫu: `{g['form_id']}`)*"
+        for g in ho_so.get("giay_to_bat_buoc", [])
+    )
+    steps_bullets = "\n".join(f"- {s}" for s in steps)
+
+    if any(k in q_core for k in ("giấy tờ", "hồ sơ", "biểu mẫu", "chuẩn bị gì", "cần những gì")):
+        return (
+            f"Để thực hiện **{ten_tt}**, bạn cần chuẩn bị bộ hồ sơ gồm các giấy tờ sau:\n"
+            f"{forms_bullets}\n\n"
+            f"📌 **Lưu ý điều kiện kèm theo:** {ho_so['dieu_kien_bat_buoc']}\n\n"
+            f"Khi chuẩn bị xong, bạn nộp tại **{auth_str}** (thời gian giải quyết **{days_str}**, lệ phí **{fee_str}**)."
+        )
+
+    if any(k in q_core for k in ("các bước", "trình tự", "quy trình", "làm thế nào")):
+        return (
+            f"Quy trình thực hiện **{ten_tt}** gồm các bước cụ thể như sau:\n"
+            f"{steps_bullets}\n\n"
+            f"Bạn nộp hồ sơ tại **{auth_str}**; tổng thời gian giải quyết **{days_str}** và lệ phí là **{fee_str}**."
+        )
+
+    if any(k in q_core for k in ("điều kiện", "lưu ý gì")):
+        return (
+            f"Khi làm **{ten_tt}**, điều kiện bắt buộc và lưu ý quan trọng nhất bạn cần nắm rõ là:\n\n"
+            f"👉 {ho_so['dieu_kien_bat_buoc']}\n\n"
+            f"Thủ tục này do **{auth_str}** tiếp nhận, giải quyết trong **{days_str}** với mức lệ phí **{fee_str}**."
+        )
+
+    if any(k in q_core for k in ("lệ phí", "bao nhiêu tiền", "mất phí", "phí bao nhiêu", "tốn bao nhiêu")):
+        return (
+            f"Về chi phí cho **{ten_tt}**, mức lệ phí theo quy định là **{fee_str}**.\n\n"
+            f"📌 **Chi tiết:** {le_phi['mo_ta']}\n\n"
+            f"Bạn nộp hồ sơ tại **{auth_str}** và nhận kết quả trong **{days_str}**."
+        )
+
+    if any(k in q_core for k in ("bao lâu", "mấy ngày", "thời hạn")):
+        return (
+            f"Thời hạn giải quyết **{ten_tt}** là **{days_str}** kể từ khi nhận đủ hồ sơ hợp lệ.\n\n"
+            f"📌 **Chi tiết:** {thoi_han['chi_tiet']}\n\n"
+            f"Nơi tiếp nhận: **{auth_str}** · Mức lệ phí: **{fee_str}**."
+        )
+
+    if any(k in q_core for k in ("ở đâu", "cơ quan nào", "nộp tại", "nơi nào")):
+        return (
+            f"Bạn nộp hồ sơ thực hiện **{ten_tt}** tại: **{auth_str}** "
+            f"(theo căn cứ tại {laws[0]['so_hieu_van_ban']}).\n\n"
+            f"Thời gian giải quyết là **{days_str}** và mức lệ phí là **{fee_str}**."
+        )
+
+    return None
 
 
 def _build_situation_opening(
@@ -277,6 +354,33 @@ def _build_situation_opening(
             f"Trong trường hợp cơ quan tố tụng từ chối trưng cầu giám định, bạn có quyền tự mình yêu cầu giám định trong thời hạn **{days_str}**."
         )
 
+    # --- 20. Cấp lại / đổi Giấy phép lái xe (TTHC-GT-01) ---
+    if ma_tt == "TTHC-GT-01":
+        return (
+            "Chào bạn, để **xin cấp lại hoặc cấp đổi Giấy phép lái xe** (do bị mất, hư hỏng hoặc sắp hết hạn), bạn có thể làm trực tuyến toàn trình ngay trên **Cổng Dịch vụ công Quốc gia** hoặc nộp trực tiếp tại **Bộ phận Một cửa của Sở Giao thông vận tải**.\n\n"
+            "👉 **Cách làm nhanh nhất:**\n"
+            "1. Nếu đổi bằng lái ô tô (hoặc các hạng trừ A1, A2, A3), bạn đi khám sức khỏe lái xe tại cơ sở y tế có liên thông điện tử để lấy mã số giấy khám sức khỏe.\n"
+            "2. Chuẩn bị Đơn đề nghị (`DON-GPLX-01`), bản sao thẻ Căn cước (`GPLX-CCCD-03`) và Giấy khám sức khỏe (`GKSK-LX-02`).\n"
+            f"3. Lệ phí nộp trực tiếp là **135.000 VNĐ/lần** (nếu nộp online qua Cổng Dịch vụ công được ưu đãi còn **115.000 VNĐ/lần**), thời gian nhận bằng mới **{days_str}**."
+        )
+
+    # --- 21. Cấp Hộ chiếu phổ thông (TTHC-HC-01) ---
+    if ma_tt == "TTHC-HC-01":
+        return (
+            "Chào bạn, hiện nay thủ tục **cấp hộ chiếu phổ thông ở trong nước** (cả loại gắn chíp và không gắn chíp) đã thực hiện trực tuyến 100% trên **Cổng dịch vụ công Bộ Công an** bằng tài khoản VNeID.\n\n"
+            "Bạn chỉ cần tải ảnh chân dung 4x6 nền trắng, điền tờ khai điện tử Mẫu TK01 (`TK-TK01-HC`) và chọn nhận hộ chiếu tận nhà qua bưu chính. "
+            f"Thời gian giải quyết **{days_str}** tại **{auth_str}**, mức lệ phí cấp mới/cấp đổi là **200.000 VNĐ** (nộp online giảm còn **180.000 VNĐ**)."
+        )
+
+    # --- 22. Sang tên Sổ đỏ / Biến động đất đai (TTHC-DD-01) ---
+    if ma_tt == "TTHC-DD-01":
+        return (
+            "Chào bạn, để làm thủ tục **sang tên Sổ đỏ (đăng ký biến động đất đai)** khi mua bán, chuyển nhượng, tặng cho hoặc thừa kế nhà đất theo Luật Đất đai 2024:\n\n"
+            "1. Sau khi hai bên ký Hợp đồng chuyển nhượng/tặng cho tại Văn phòng công chứng (`HD-CNQSD-02`), bạn phải nộp hồ sơ đăng ký biến động **trong thời hạn 30 ngày**.\n"
+            f"2. Nộp Đơn đăng ký biến động Mẫu 11/ĐK (`DON-DKBD-11`) kèm bản gốc Sổ đỏ (`GCN-SDD-03`) tại **{auth_str}** (hoặc Bộ phận Một cửa cấp huyện).\n"
+            f"3. Thời gian giải quyết **{days_str}** (không tính thời gian chờ bạn đóng thuế TNCN 2% và lệ phí trước bạ 0,5%), lệ phí hành chính khoảng **{fee_str}**."
+        )
+
     if expired_alerts:
         exp_law = expired_alerts[0]["can_cu_phap_ly"][0]
         return (
@@ -296,9 +400,10 @@ def build_direct_advice(
 ) -> str:
     """
     Sinh đoạn trả lời tư vấn tự nhiên (`direct_advice`) giống như chuyên viên pháp lý
-    đang trực tiếp giải đáp cho người dân dựa trên câu hỏi và Hồ sơ 6 trường.
+    đang trực tiếp giải đáp cho người dân trong Chatbot đa lượt.
     """
     info = primary_proc["ma_va_ten_thu_tuc"]
+    steps = primary_proc["trinh_tu_thuc_hien"]
     ho_so = primary_proc["thanh_phan_ho_so"]
     thoi_han = primary_proc["thoi_han_giai_quyet"]
     le_phi = primary_proc["le_phi"]
@@ -311,7 +416,19 @@ def build_direct_advice(
     don_vi = thoi_han["don_vi_tinh"]
     muc_phi = int(le_phi["muc_phi_vnd"])
 
-    opening = _build_situation_opening(
+    # 1. Nếu là câu hỏi ngắn nối tiếp hỏi riêng 1 khía cạnh (giấy tờ / các bước / lệ phí / thời hạn / nơi nộp)
+    followup_reply = _build_followup_aspect_reply(
+        raw_user_query=query,
+        ten_tt=ten_tt,
+        cap_tq=cap_tq,
+        steps=steps,
+        ho_so=ho_so,
+        thoi_han=thoi_han,
+        le_phi=le_phi,
+        laws=laws,
+    )
+
+    opening = followup_reply or _build_situation_opening(
         query=query,
         ma_tt=ma_tt,
         ten_tt=ten_tt,
@@ -323,7 +440,6 @@ def build_direct_advice(
     )
 
     if opening is None:
-        q_lower = query.lower()
         auth_str = _fmt_auth_natural(cap_tq)
         fee_str = _fmt_fee_natural(muc_phi)
         days_str = _fmt_days_natural(so_ngay, don_vi)
@@ -331,34 +447,14 @@ def build_direct_advice(
         forms_preview = "; ".join(
             f"{g['ten_giay_to']} (`{g['form_id']}`)" for g in ho_so.get("giay_to_bat_buoc", [])
         )
-
-        if any(k in q_lower for k in ("lệ phí", "bao nhiêu tiền", "mất phí", "phí bao nhiêu", "tốn bao nhiêu")):
-            opening = (
-                f"Chào bạn, về mức phí thực hiện **{ten_tt}**, câu trả lời là **{fee_str}** "
-                f"*(chi tiết: {le_phi['mo_ta']})*.\n\n"
-                f"Bạn chỉ cần chuẩn bị hồ sơ gồm {forms_preview} rồi nộp tại **{auth_str}**; "
-                f"thời hạn giải quyết **{days_str}** theo {primary_law['so_hieu_van_ban']} ({primary_law['dieu_khoan_diem']})."
-            )
-        elif any(k in q_lower for k in ("bao lâu", "mấy ngày", "thời hạn")):
-            opening = (
-                f"Chào bạn, thời hạn giải quyết theo quy định cho **{ten_tt}** là **{days_str}** "
-                f"kể từ khi nhận đủ hồ sơ hợp lệ.\n\n"
-                f"Bạn nộp hồ sơ tại **{auth_str}** với mức lệ phí **{fee_str}**. "
-                f"Khi đi nhớ chuẩn bị đầy đủ: {forms_preview}."
-            )
-        elif any(k in q_lower for k in ("ở đâu", "cơ quan nào", "nộp tại", "nơi nào")):
-            opening = (
-                f"Chào bạn, để làm **{ten_tt}**, bạn nộp hồ sơ tại **{auth_str}**.\n\n"
-                f"Hồ sơ cần chuẩn bị gồm: {forms_preview}. Thời hạn giải quyết **{days_str}** "
-                f"và lệ phí nhà nước là **{fee_str}**."
-            )
-        else:
-            opening = (
-                f"Chào bạn, qua tìm hiểu tình huống của bạn, nội dung này thuộc phạm vi **{ten_tt}** "
-                f"theo quy định tại **{primary_law['so_hieu_van_ban']}** ({primary_law['dieu_khoan_diem']}).\n\n"
-                f"Để thực hiện đúng quy trình, bạn nộp hồ sơ tại **{auth_str}** gồm các giấy tờ: {forms_preview}. "
-                f"Thời hạn giải quyết **{days_str}** và mức lệ phí là **{fee_str}**."
-            )
+        opening = (
+            f"Chào bạn, về nhu cầu thực hiện **{ten_tt}** (theo **{primary_law['so_hieu_van_ban']}** — {primary_law['dieu_khoan_diem']}), "
+            f"mình xin hướng dẫn nhanh cho bạn như sau:\n\n"
+            f"- **Nơi nộp hồ sơ:** Bạn nộp tại **{auth_str}**.\n"
+            f"- **Giấy tờ cần chuẩn bị:** {forms_preview}.\n"
+            f"- **Thời gian & Chi phí:** Giải quyết trong **{days_str}**, mức lệ phí là **{fee_str}**.\n"
+            f"- **Lưu ý quan trọng:** {ho_so['dieu_kien_bat_buoc']}"
+        )
 
     if revision_count > 0:
         opening = (

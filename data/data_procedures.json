@@ -1036,5 +1036,709 @@
         "van_ban_thay_the": null
       }
     ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-GT-01",
+      "ten_thu_tuc": "Thủ tục cấp đổi, cấp lại Giấy phép lái xe (do hết hạn, hư hỏng hoặc bị mất)",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Giao thông & Phương tiện",
+      "cap_tham_quyen": ["Sở Giao thông vận tải", "Cổng Dịch vụ công Quốc gia (Mức độ 4)"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người dân khám sức khỏe lái xe tại cơ sở y tế có liên thông dữ liệu điện tử (trừ hạng A1, A2, A3).",
+      "Bước 2: Nộp hồ sơ trực tuyến trên Cổng Dịch vụ công hoặc trực tiếp tại Bộ phận Một cửa của Sở GTVT.",
+      "Bước 3: Thanh toán lệ phí và nhận Giấy phép lái xe mới tại cơ quan cấp hoặc qua bưu chính trong 05 ngày làm việc."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-GPLX-01", "ten_giay_to": "Đơn đề nghị đổi hoặc cấp lại giấy phép lái xe theo mẫu quy định"},
+        {"form_id": "GKSK-LX-02", "ten_giay_to": "Giấy khám sức khỏe của người lái xe (hoặc mã giấy khám sức khỏe điện tử, trừ hạng A1, A2, A3)"},
+        {"form_id": "GPLX-CCCD-03", "ten_giay_to": "Bản sao thẻ Căn cước/CCCD và giấy phép lái xe hiện có (nếu xin cấp đổi)"}
+      ],
+      "dieu_kien_bat_buoc": "Giấy phép lái xe phải có trong hệ thống thông tin giấy phép lái xe, không đang bị cơ quan chức năng tạm giữ hoặc tước quyền sử dụng. Trường hợp mất GPLX vẫn còn thời hạn hoặc quá hạn dưới 03 tháng thì được xét cấp lại không phải sát hạch; quá hạn từ 03 tháng đến dưới 01 năm phải sát hạch lại lý thuyết; từ 01 năm trở lên phải sát hạch lại cả lý thuyết và thực hành."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 5,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận đủ hồ sơ hợp lệ đối với cấp đổi; trường hợp mất GPLX thì sau 02 tháng xác minh nếu không phát hiện bị tạm giữ sẽ giải quyết trong 05 ngày làm việc)",
+      "chi_tiet": "Tối đa 05 ngày làm việc kể từ ngày nhận đủ hồ sơ hợp lệ."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 135000,
+      "mo_ta": "Lệ phí nộp trực tiếp: 135.000 VNĐ/lần; nộp trực tuyến toàn trình qua Cổng Dịch vụ công: 115.000 VNĐ/lần."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "tt12-2017-d36",
+        "so_hieu_van_ban": "Thông tư số 12/2017/TT-BGTVT (sửa đổi bởi Thông tư số 05/2024/TT-BGTVT) và Thông tư số 63/2023/TT-BTC",
+        "dieu_khoan_diem": "Điều 36, Điều 37, Điều 38 (Thủ tục cấp lại và đổi Giấy phép lái xe)",
+        "ngay_hieu_luc": "2024-06-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-GT-02",
+      "ten_thu_tuc": "Thủ tục đăng ký, cấp biển số xe mô tô, xe gắn máy, ô tô (biển số định danh)",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Giao thông & Phương tiện",
+      "cap_tham_quyen": ["Công an cấp xã (được phân cấp đăng ký xe mô tô)", "Công an cấp huyện", "Phòng Cảnh sát giao thông Công an cấp tỉnh"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Chủ xe kê khai tờ khai đăng ký xe điện tử trên Cổng Dịch vụ công và nộp lệ phí trước bạ điện tử.",
+      "Bước 2: Đưa xe đến cơ quan đăng ký xe để kiểm tra thực tế phương tiện (số khung, số máy) và cung cấp mã hồ sơ trực tuyến.",
+      "Bước 3: Bấm biển số định danh trên hệ thống (hoặc cấp lại biển định danh đã có) và nhận Chứng nhận đăng ký xe."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "TK-DKX-01", "ten_giay_to": "Giấy khai đăng ký xe (Mẫu ĐKX10/24 kê khai trên Cổng Dịch vụ công)"},
+        {"form_id": "CT-NGX-02", "ten_giay_to": "Chứng từ nguồn gốc xe (Phiếu kiểm tra chất lượng xuất xưởng hoặc dữ liệu hải quan điện tử) và hóa đơn giá trị gia tăng"},
+        {"form_id": "CT-LPTB-03", "ten_giay_to": "Chứng từ hoàn thành nghĩa vụ nộp lệ phí trước bạ và thẻ Căn cước/VNeID mức 2 của chủ xe"}
+      ],
+      "dieu_kien_bat_buoc": "Biển số xe được cấp và quản lý theo mã định danh cá nhân của chủ xe (biển số định danh). Khi bán hoặc chuyển nhượng xe, chủ xe phải giữ lại đăng ký và biển số nộp cho cơ quan đăng ký xe để làm thủ tục thu hồi trong 30 ngày."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 2,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận đủ hồ sơ hợp lệ đối với cấp chứng nhận đăng ký xe; biển số định danh lần đầu được cấp ngay sau khi tiếp nhận hồ sơ hợp lệ)",
+      "chi_tiet": "Cấp chứng nhận đăng ký xe không quá 02 ngày làm việc; cấp lại biển số định danh không quá 07 ngày làm việc."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 150000,
+      "mo_ta": "Lệ phí cấp mới đăng ký kèm biển số phụ thuộc khu vực và giá trị xe (phổ biến với xe máy từ 150.000 VNĐ đến 4.000.000 VNĐ theo Thông tư 60/2023/TT-BTC; đổi chứng nhận đăng ký xe: 50.000 VNĐ)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "tt24-2023-d7",
+        "so_hieu_van_ban": "Thông tư số 24/2023/TT-BCA của Bộ Công an",
+        "dieu_khoan_diem": "Điều 3, Điều 7, Điều 8 (Quy định về cấp, thu hồi đăng ký, biển số xe cơ giới theo mã định danh)",
+        "ngay_hieu_luc": "2023-08-15",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-HC-01",
+      "ten_thu_tuc": "Thủ tục cấp hộ chiếu phổ thông ở trong nước (gắn chíp và không gắn chíp điện tử)",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Xuất nhập cảnh & Hộ chiếu",
+      "cap_tham_quyen": ["Phòng Quản lý xuất nhập cảnh Công an cấp tỉnh", "Cục Quản lý xuất nhập cảnh Bộ Công an"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Công dân đăng nhập Cổng dịch vụ công Bộ Công an bằng tài khoản VNeID, điền tờ khai điện tử và tải ảnh chân dung 4x6 nền trắng.",
+      "Bước 2: Chọn hình thức nhận hộ chiếu trực tiếp hoặc qua bưu chính, nộp hộ chiếu cũ (nếu còn giá trị) và thanh toán lệ phí trực tuyến.",
+      "Bước 3: Nhận hộ chiếu phổ thông mới trong 08 ngày làm việc tại Phòng Quản lý xuất nhập cảnh hoặc5 ngày làm việc tại Cục Quản lý xuất nhập cảnh."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "TK-TK01-HC", "ten_giay_to": "Tờ khai đề nghị cấp hộ chiếu phổ thông ở trong nước (Mẫu TK01) kèm 02 ảnh 4x6 cm nền trắng"},
+        {"form_id": "HC-CU-02", "ten_giay_to": "Hộ chiếu phổ thông cấp lần gần nhất (đối với người đã được cấp hộ chiếu; nếu mất hộ chiếu phải kèm Đơn trình báo mất Mẫu TK05)"},
+        {"form_id": "CCCD-HC-03", "ten_giay_to": "Thẻ Căn cước công dân hoặc thẻ Căn cước còn giá trị sử dụng"}
+      ],
+      "dieu_kien_bat_buoc": "Công dân Việt Nam từ đủ 14 tuổi trở lên có quyền lựa chọn đề nghị cấp hộ chiếu phổ thông có gắn chíp điện tử hoặc không gắn chíp điện tử (thời hạn 10 năm). Trẻ em dưới 14 tuổi được cấp hộ chiếu không gắn chíp thời hạn 05 năm và tờ khai phải do cha, mẹ hoặc người giám hộ ký tên, xác nhận của Công an xã."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 8,
+      "don_vi_tinh": "ngày làm việc (tại Phòng Quản lý xuất nhập cảnh Công an cấp tỉnh; tối đa 05 ngày làm việc nếu nộp tại Cục Quản lý xuất nhập cảnh)",
+      "chi_tiet": "Tối đa 08 ngày làm việc kể từ ngày tiếp nhận đầy đủ hồ sơ và thanh toán lệ phí."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 200000,
+      "mo_ta": "Cấp mới / cấp đổi: 200.000 VNĐ/lần (nộp trực tuyến được giảm còn 180.000 VNĐ); Cấp lại do bị mất hoặc hư hỏng: 400.000 VNĐ/lần (trực tuyến 360.000 VNĐ)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lxcnc2019-d15",
+        "so_hieu_van_ban": "Luật Xuất cảnh, nhập cảnh của công dân Việt Nam năm 2019 (sửa đổi, bổ sung năm 2023)",
+        "dieu_khoan_diem": "Điều 15 (Đề nghị cấp hộ chiếu phổ thông ở trong nước)",
+        "ngay_hieu_luc": "2023-08-15",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-DD-01",
+      "ten_thu_tuc": "Thủ tục đăng ký biến động đất đai, sang tên Sổ đỏ (khi chuyển nhượng, tặng cho, thừa kế quyền sử dụng đất)",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Đất đai & Xây dựng",
+      "cap_tham_quyen": ["Chi nhánh Văn phòng đăng ký đất đai cấp huyện", "Văn phòng đăng ký đất đai cấp tỉnh"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Các bên công chứng hoặc chứng thực Hợp đồng chuyển nhượng, tặng cho hoặc văn bản phân chia di sản thừa kế quyền sử dụng đất.",
+      "Bước 2: Nộp hồ sơ đăng ký biến động và tờ khai thuế TNCN, lệ phí trước bạ tại Bộ phận Một cửa cấp huyện hoặc Chi nhánh Văn phòng đăng ký đất đai.",
+      "Bước 3: Thực hiện nghĩa vụ tài chính theo thông báo của cơ quan thuế và nhận Giấy chứng nhận (Sổ đỏ) đã cập nhật tên chủ mới."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-DKBD-11", "ten_giay_to": "Đơn đăng ký biến động đất đai, tài sản gắn liền với đất (Mẫu số 11/ĐK)"},
+        {"form_id": "HD-CNQSD-02", "ten_giay_to": "Hợp đồng chuyển nhượng, tặng cho hoặc văn bản thừa kế quyền sử dụng đất đã được công chứng/chứng thực"},
+        {"form_id": "GCN-SDD-03", "ten_giay_to": "Bản gốc Giấy chứng nhận quyền sử dụng đất (Sổ đỏ/Sổ hồng) đã cấp và tờ khai thuế TNCN, lệ phí trước bạ"}
+      ],
+      "dieu_kien_bat_buoc": "Thửa đất phải có Giấy chứng nhận hợp pháp, đất không có tranh chấp, quyền sử dụng đất không đang bị kê biên hoặc áp dụng biện pháp bảo đảm thi hành án, còn trong thời hạn sử dụng đất. Người sử dụng đất phải thực hiện thủ tục đăng ký biến động trong thời hạn 30 ngày kể từ ngày hợp đồng chuyển nhượng/tặng cho có hiệu lực."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 10,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận đủ hồ sơ hợp lệ, không tính thời gian người dân thực hiện nghĩa vụ nộp thuế)",
+      "chi_tiet": "Tối đa 10 ngày làm việc theo Nghị định 101/2024/NĐ-CP (đối với xã miền núi, hải đảo, vùng sâu, vùng xa được tăng thêm 10 ngày)."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 100000,
+      "mo_ta": "Lệ phí cấp đổi/đăng ký biến động Giấy chứng nhận do HĐND cấp tỉnh quy định (phổ biến 100.000 VNĐ/hồ sơ; chưa bao gồm lệ phí trước bạ 0,5% và thuế TNCN 2% giá trị chuyển nhượng nếu không thuộc diện miễn thuế giữa cha mẹ, vợ chồng, con)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "ldd2024-d133",
+        "so_hieu_van_ban": "Luật Đất đai số 31/2024/QH15 và Nghị định số 101/2024/NĐ-CP",
+        "dieu_khoan_diem": "Điều 133 Luật Đất đai 2024; Điều 22, Điều 37 Nghị định 101/2024/NĐ-CP (Đăng ký biến động đất đai)",
+        "ngay_hieu_luc": "2024-08-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-DD-02",
+      "ten_thu_tuc": "Thủ tục đăng ký đất đai, cấp Giấy chứng nhận quyền sử dụng đất (Sổ đỏ) lần đầu cho hộ gia đình, cá nhân",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Đất đai & Xây dựng",
+      "cap_tham_quyen": ["UBND cấp huyện", "Chi nhánh Văn phòng đăng ký đất đai", "UBND cấp xã (xác nhận hiện trạng và nguồn gốc đất)"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người sử dụng đất nộp hồ sơ tại Bộ phận Một cửa cấp huyện hoặc UBND cấp xã nơi có đất.",
+      "Bước 2: UBND cấp xã kiểm tra hiện trạng, xác nhận nguồn gốc, thời điểm sử dụng đất, tình trạng không tranh chấp và niêm yết công khai trong 15 ngày.",
+      "Bước 3: Văn phòng đăng ký đất đai kiểm tra trích đo địa chính, chuyển thông tin nghĩa vụ tài chính sang cơ quan thuế và trình UBND cấp huyện ký cấp Giấy chứng nhận."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-DKDD-04", "ten_giay_to": "Đơn đăng ký đất đai, tài sản gắn liền với đất (Mẫu số 04/ĐK)"},
+        {"form_id": "GT-QSDD-02", "ten_giay_to": "Một trong các loại giấy tờ về quyền sử dụng đất theo Điều 137 Luật Đất đai 2024 (nếu có) và sơ đồ nhà ở, công trình xây dựng"},
+        {"form_id": "CT-NVTC-03", "ten_giay_to": "Chứng từ thực hiện nghĩa vụ tài chính hoặc giấy tờ miễn, giảm nghĩa vụ tài chính về đất đai"}
+      ],
+      "dieu_kien_bat_buoc": "Hộ gia đình, cá nhân đang sử dụng đất ổn định, có giấy tờ về quyền sử dụng đất (Điều 137) hoặc không có giấy tờ nhưng sử dụng đất trước ngày 01/07/2014, được UBND cấp xã xác nhận không có tranh chấp, không vi phạm pháp luật đất đai và phù hợp với quy hoạch sử dụng đất (Điều 138 Luật Đất đai 2024)."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 20,
+      "don_vi_tinh": "ngày làm việc (đối với đăng ký đất đai, tài sản gắn liền với đất lần đầu; thêm tối đa 03 ngày làm việc để in và cấp Giấy chứng nhận sau khi hoàn thành nghĩa vụ tài chính)",
+      "chi_tiet": "Thời gian đăng ký đất đai lần đầu không quá 20 ngày làm việc; tổng thời gian cả cấp Giấy chứng nhận lần đầu không quá 23 ngày làm việc theo Khoản 1 Điều 22 Nghị định 101/2024/NĐ-CP."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 100000,
+      "mo_ta": "Lệ phí cấp Giấy chứng nhận lần đầu do HĐND cấp tỉnh quy định (thường từ 100.000 VNĐ/giấy; miễn lệ phí đối với hộ nghèo, người cao tuổi, người khuyết tật, người có công)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "ldd2024-d137",
+        "so_hieu_van_ban": "Luật Đất đai số 31/2024/QH15 và Nghị định số 101/2024/NĐ-CP",
+        "dieu_khoan_diem": "Điều 137, Điều 138 Luật Đất đai 2024; Điều 22, Điều 28, Điều 31 Nghị định 101/2024/NĐ-CP",
+        "ngay_hieu_luc": "2024-08-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-DD-03",
+      "ten_thu_tuc": "Thủ tục cấp Giấy phép xây dựng mới đối với nhà ở riêng lẻ",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Đất đai & Xây dựng",
+      "cap_tham_quyen": ["UBND cấp huyện"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Chủ đầu tư nộp 02 bộ hồ sơ đề nghị cấp giấy phép xây dựng nhà ở riêng lẻ tại Bộ phận Một cửa UBND cấp huyện hoặc trực tuyến.",
+      "Bước 2: Phòng Quản lý đô thị / Phòng Kinh tế và Hạ tầng thẩm định hồ sơ, kiểm tra thực địa và đối chiếu quy hoạch xây dựng trong 07 ngày làm việc.",
+      "Bước 3: UBND cấp huyện cấp Giấy phép xây dựng nhà ở riêng lẻ và đóng dấu xác nhận bản vẽ thiết kế trong 15 ngày làm việc."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-GPXD-01", "ten_giay_to": "Đơn đề nghị cấp giấy phép xây dựng nhà ở riêng lẻ (Mẫu số 01 Phụ lục II Nghị định 15/2021/NĐ-CP)"},
+        {"form_id": "GCN-DD-XD02", "ten_giay_to": "Bản sao hợp lệ Giấy chứng nhận quyền sử dụng đất (Sổ đỏ) có mục đích đất ở"},
+        {"form_id": "BV-TKXD-03", "ten_giay_to": "02 bộ bản vẽ thiết kế xây dựng kèm bản cam kết bảo đảm an toàn đối với công trình liền kề (nếu có công trình liền kề)"}
+      ],
+      "dieu_kien_bat_buoc": "Thửa đất xin phép xây dựng phải là đất ở hợp pháp, phù hợp với quy hoạch chi tiết xây dựng hoặc quy chế quản lý kiến trúc được phê duyệt, bảo đảm an toàn cho công trình, công trình lân cận và hành lang bảo vệ công trình hạ tầng, phòng cháy chữa cháy."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 15,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận đủ hồ sơ hợp lệ đối với nhà ở riêng lẻ)",
+      "chi_tiet": "Tối đa 15 ngày làm việc kể từ ngày nhận đủ hồ sơ hợp lệ theo điểm e Khoản 1 Điều 102 Luật Xây dựng."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 75000,
+      "mo_ta": "Lệ phí cấp Giấy phép xây dựng nhà ở riêng lẻ của nhân dân do HĐND cấp tỉnh quy định (mức phổ biến từ 50.000 VNĐ đến 75.000 VNĐ/giấy phép)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lxd2014-d95",
+        "so_hieu_van_ban": "Luật Xây dựng số 50/2014/QH13 (sửa đổi, bổ sung năm 2020) và Nghị định số 15/2021/NĐ-CP",
+        "dieu_khoan_diem": "Điều 93, Điều 95, Điều 102 Luật Xây dựng; Điều 46 Nghị định 15/2021/NĐ-CP",
+        "ngay_hieu_luc": "2021-03-03",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-KD-01",
+      "ten_thu_tuc": "Thủ tục đăng ký thành lập Hộ kinh doanh cá thể",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Kinh doanh & Thuế",
+      "cap_tham_quyen": ["Cơ quan đăng ký kinh doanh cấp huyện (Phòng Tài chính - Kế hoạch thuộc UBND cấp huyện)"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Cá nhân hoặc người đại diện hộ gia đình nộp hồ sơ đăng ký hộ kinh doanh trực tuyến trên Cổng dịch vụ công hoặc tại Bộ phận Một cửa UBND cấp huyện nơi đặt trụ sở.",
+      "Bước 2: Phòng Tài chính - Kế hoạch kiểm tra điều kiện tên hộ kinh doanh, ngành nghề và trao Giấy biên nhận.",
+      "Bước 3: Cấp Giấy chứng nhận đăng ký hộ kinh doanh và mã số thuế hộ kinh doanh liên thông trong 03 ngày làm việc."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "GDN-HKD-01", "ten_giay_to": "Giấy đề nghị đăng ký hộ kinh doanh (Phụ lục III-1 Thông tư 02/2023/TT-BKHĐT)"},
+        {"form_id": "BB-HGĐ-02", "ten_giay_to": "Bản sao biên bản họp thành viên hộ gia đình về việc thành lập hộ kinh doanh và văn bản ủy quyền cho 01 thành viên làm chủ hộ (nếu các thành viên cùng góp vốn)"},
+        {"form_id": "CCCD-HKD-03", "ten_giay_to": "Giấy tờ pháp lý cá nhân (Thẻ Căn cước/CCCD) của chủ hộ kinh doanh và thành viên hộ gia đình"}
+      ],
+      "dieu_kien_bat_buoc": "Mỗi cá nhân chỉ được đăng ký thành lập 01 hộ kinh doanh trên phạm vi toàn quốc (và không được đồng thời là chủ doanh nghiệp tư nhân hoặc thành viên hợp danh của công ty hợp danh, trừ khi được các thành viên hợp danh còn lại nhất trí). Ngành, nghề kinh doanh không thuộc danh mục cấm đầu tư kinh doanh và tên hộ kinh doanh không trùng trong phạm vi cấp huyện."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 3,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận đủ hồ sơ hợp lệ)",
+      "chi_tiet": "Cơ quan đăng ký kinh doanh cấp huyện cấp Giấy chứng nhận đăng ký hộ kinh doanh trong thời hạn 03 ngày làm việc kể từ ngày nhận hồ sơ; nếu từ chối phải thông báo bằng văn bản trong 03 ngày làm việc."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 100000,
+      "mo_ta": "Lệ phí đăng ký hộ kinh doanh do HĐND cấp tỉnh quy định (mức phổ biến: 100.000 VNĐ/lần)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "nd01-2021-d87",
+        "so_hieu_van_ban": "Nghị định số 01/2021/NĐ-CP về đăng ký doanh nghiệp và Thông tư số 02/2023/TT-BKHĐT",
+        "dieu_khoan_diem": "Điều 79, Điều 80, Điều 87 Nghị định 01/2021/NĐ-CP (Hồ sơ và thời hạn 03 ngày làm việc đăng ký hộ kinh doanh)",
+        "ngay_hieu_luc": "2023-07-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-KD-02",
+      "ten_thu_tuc": "Thủ tục đăng ký thành lập mới Doanh nghiệp (Công ty TNHH, Công ty Cổ phần)",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Kinh doanh & Thuế",
+      "cap_tham_quyen": ["Phòng Đăng ký kinh doanh thuộc Sở Kế hoạch và Đầu tư cấp tỉnh"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người thành lập doanh nghiệp chuẩn bị hồ sơ và nộp trực tuyến qua Cổng thông tin quốc gia về đăng ký doanh nghiệp (dangkykinhdoanh.gov.vn).",
+      "Bước 2: Phòng Đăng ký kinh doanh thuộc Sở Kế hoạch và Đầu tư thẩm định tính hợp lệ của hồ sơ và liên thông cấp mã số thuế doanh nghiệp.",
+      "Bước 3: Cấp Giấy chứng nhận đăng ký doanh nghiệp và công bố nội dung đăng ký doanh nghiệp trong 03 ngày làm việc."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "GDN-DKDN-01", "ten_giay_to": "Giấy đề nghị đăng ký doanh nghiệp theo mẫu tương ứng với loại hình công ty"},
+        {"form_id": "DL-CTY-02", "ten_giay_to": "Điều lệ công ty có chữ ký của chủ sở hữu, thành viên góp vốn hoặc cổ đông sáng lập"},
+        {"form_id": "DS-TVCD-03", "ten_giay_to": "Danh sách thành viên hoặc danh sách cổ đông sáng lập kèm bản sao giấy tờ pháp lý cá nhân/tổ chức"}
+      ],
+      "dieu_kien_bat_buoc": "Tên doanh nghiệp dự kiến đặt không được trùng hoặc gây nhầm lẫn với doanh nghiệp đã đăng ký; người thành lập doanh nghiệp không thuộc đối tượng bị cấm thành lập, quản lý doanh nghiệp theo Khoản 2 Điều 17 Luật Doanh nghiệp 2020 (như cán bộ, công chức, viên chức, sĩ quan quân đội, công an)."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 3,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận được hồ sơ hợp lệ)",
+      "chi_tiet": "Phòng Đăng ký kinh doanh xem xét và cấp Giấy chứng nhận đăng ký doanh nghiệp trong thời hạn 03 ngày làm việc kể từ ngày nhận hồ sơ hợp lệ theo Điều 26 Luật Doanh nghiệp 2020."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 50000,
+      "mo_ta": "Lệ phí đăng ký doanh nghiệp nộp trực tiếp: 50.000 VNĐ/lần (Miễn 100% lệ phí đăng ký doanh nghiệp khi nộp qua mạng điện tử; phí công bố nội dung đăng ký doanh nghiệp: 100.000 VNĐ)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "ldn2020-d26",
+        "so_hieu_van_ban": "Luật Doanh nghiệp số 59/2020/QH14 và Nghị định số 01/2021/NĐ-CP",
+        "dieu_khoan_diem": "Điều 17, Điều 21, Điều 22, Điều 26 Luật Doanh nghiệp 2020; Điều 32 Nghị định 01/2021/NĐ-CP",
+        "ngay_hieu_luc": "2021-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-KD-03",
+      "ten_thu_tuc": "Thủ tục quyết toán và hoàn thuế thu nhập cá nhân (TNCN) cho cá nhân trực tiếp quyết toán",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Kinh doanh & Thuế",
+      "cap_tham_quyen": ["Chi cục Thuế", "Cục Thuế", "Hệ thống Thuế điện tử eTax Mobile"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Cá nhân đăng nhập ứng dụng eTax Mobile hoặc Cổng Thuế điện tử bằng tài khoản VNeID mức 2.",
+      "Bước 2: Điền Tờ khai quyết toán thuế mẫu 02/QTT-TNCN, đính kèm chứng từ khấu trừ thuế và chọn đề nghị hoàn thuế tự động.",
+      "Bước 3: Cơ quan thuế đối chiếu dữ liệu thu nhập và giải quyết hoàn tiền vào tài khoản ngân hàng đã liên kết."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "TK-02QTT-TNCN", "ten_giay_to": "Tờ khai quyết toán thuế thu nhập cá nhân (Mẫu 02/QTT-TNCN) và Phụ lục giảm trừ gia cảnh 02-1/BK-QTT-TNCN"},
+        {"form_id": "CT-KTT-02", "ten_giay_to": "Bản chụp các chứng từ chứng minh số thuế đã khấu trừ, đã tạm nộp trong năm"}
+      ],
+      "dieu_kien_bat_buoc": "Cá nhân có số thuế đã nộp lớn hơn số thuế phải nộp thì được hoàn thuế và không bị phạt nếu nộp hồ sơ hoàn thuế sau hạn 30/04. Trường hợp phát sinh số thuế phải nộp thêm thì thời hạn nộp hồ sơ quyết toán chậm nhất là ngày cuối cùng của tháng thứ 4 kể từ ngày kết thúc năm dương lịch."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 6,
+      "don_vi_tinh": "ngày làm việc (đối với hồ sơ thuộc diện hoàn thuế trước; tối đa 40 ngày đối với hồ sơ kiểm tra trước hoàn thuế sau)",
+      "chi_tiet": "Tối đa 06 ngày làm việc kể từ ngày cơ quan thuế chấp nhận hồ sơ hoàn thuế hợp lệ."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ) khi nộp hồ sơ quyết toán và hoàn thuế TNCN."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lqlt2019-d75",
+        "so_hieu_van_ban": "Luật Quản lý thuế số 38/2019/QH14 và Thông tư số 80/2021/TT-BTC",
+        "dieu_khoan_diem": "Điều 44, Điều 75 Luật Quản lý thuế 2019 (Thời hạn quyết toán và giải quyết hoàn thuế)",
+        "ngay_hieu_luc": "2020-07-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-BH-02",
+      "ten_thu_tuc": "Thủ tục cấp lại, đổi thẻ Bảo hiểm y tế (BHYT) và tham gia BHYT hộ gia đình",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Lao động & Bảo hiểm",
+      "cap_tham_quyen": ["Cơ quan Bảo hiểm xã hội cấp huyện", "Cơ quan Bảo hiểm xã hội cấp tỉnh", "Cổng Dịch vụ công / Ứng dụng VssID"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người tham gia kê khai Tờ khai TK1-TS trực tuyến trên ứng dụng VssID / Cổng Dịch vụ công hoặc tại Cơ quan BHXH.",
+      "Bước 2: Cơ quan BHXH kiểm tra mã số BHXH và thông tin thời hạn hưởng trên cơ sở dữ liệu.",
+      "Bước 3: Cấp lại thẻ BHYT (hoặc cập nhật hình ảnh thẻ BHYT điện tử trên VssID và căn cước gắn chíp)."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "TK-TK1-TS", "ten_giay_to": "Tờ khai tham gia, điều chỉnh thông tin BHXH, BHYT (Mẫu TK1-TS)"}
+      ],
+      "dieu_kien_bat_buoc": "Trong thời gian chờ cấp lại hoặc đổi thẻ BHYT, người có thẻ vẫn được hưởng đầy đủ quyền lợi khám chữa bệnh BHYT bằng giấy hẹn hoặc sử dụng thẻ Căn cước gắn chíp / ứng dụng VssID / VNeID mức 2."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 5,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận đủ hồ sơ; trường hợp không thay đổi thông tin thì giải quyết không quá 02 ngày làm việc)",
+      "chi_tiet": "Tối đa 05 ngày làm việc theo quy trình của BHXH Việt Nam."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hành chính cấp lại, đổi thẻ BHYT (0 VNĐ)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lbhyt2014-d18",
+        "so_hieu_van_ban": "Luật Bảo hiểm y tế (sửa đổi, bổ sung năm 2014) và Quyết định số 595/QĐ-BHXH",
+        "dieu_khoan_diem": "Điều 18, Điều 19 Luật Bảo hiểm y tế (Cấp lại và đổi thẻ BHYT)",
+        "ngay_hieu_luc": "2015-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-BH-03",
+      "ten_thu_tuc": "Thủ tục giải quyết hưởng chế độ thai sản cho người lao động",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Lao động & Bảo hiểm",
+      "cap_tham_quyen": ["Cơ quan Bảo hiểm xã hội cấp huyện", "Cơ quan Bảo hiểm xã hội cấp tỉnh"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người lao động nộp giấy khai sinh hoặc giấy chứng sinh của con cho đơn vị sử dụng lao động trong vòng 45 ngày kể từ ngày trở lại làm việc (hoặc nộp trực tiếp cho cơ quan BHXH nếu đã thôi việc trước khi sinh).",
+      "Bước 2: Đơn vị sử dụng lao động lập Danh sách 01B-HSB gửi cơ quan BHXH trong 10 ngày.",
+      "Bước 3: Cơ quan BHXH xét duyệt và chi trả tiền trợ cấp thai sản trực tiếp vào tài khoản người lao động."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "GKS-GCS-TS01", "ten_giay_to": "Bản sao giấy khai sinh hoặc bản sao giấy chứng sinh của con"},
+        {"form_id": "DS-01B-HSB", "ten_giay_to": "Danh sách đề nghị giải quyết hưởng chế độ ốm đau, thai sản do đơn vị sử dụng lao động lập (Mẫu 01B-HSB)"}
+      ],
+      "dieu_kien_bat_buoc": "Lao động nữ sinh con phải đóng BHXH bắt buộc từ đủ 06 tháng trở lên trong thời gian 12 tháng trước khi sinh con (hoặc từ đủ 03 tháng trở lên nếu phải nghỉ việc dưỡng thai theo chỉ định của cơ sở y tế). Lao động nam đang đóng BHXH khi vợ sinh con được nghỉ hưởng thai sản từ 05 đến 14 ngày làm việc."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 6,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận đủ hồ sơ từ người sử dụng lao động; tối đa 03 ngày làm việc nếu người lao động nộp trực tiếp)",
+      "chi_tiet": "Tối đa 06 ngày làm việc đối với hồ sơ nộp qua đơn vị sử dụng lao động."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lbhxh2014-d31",
+        "so_hieu_van_ban": "Luật Bảo hiểm xã hội số 58/2014/QH13",
+        "dieu_khoan_diem": "Điều 31, Điều 34, Điều 101, Điều 102 (Điều kiện và thời hạn giải quyết chế độ thai sản)",
+        "ngay_hieu_luc": "2016-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-HT-06",
+      "ten_thu_tuc": "Thủ tục liên thông điện tử: Đăng ký khai sinh, đăng ký thường trú và cấp thẻ BHYT cho trẻ em dưới 06 tuổi",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Hộ tịch",
+      "cap_tham_quyen": ["UBND cấp xã", "Công an cấp xã", "Cơ quan Bảo hiểm xã hội cấp huyện"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Cha hoặc mẹ đăng nhập Cổng Dịch vụ công Quốc gia / VNeID, điền một Tờ khai điện tử liên thông duy nhất và đính kèm Giấy chứng sinh điện tử.",
+      "Bước 2: Hệ thống tự động chuyển hồ sơ đồng thời tới UBND cấp xã (cấp Giấy khai sinh), Công an cấp xã (nhập thường trú) và BHXH (cấp thẻ BHYT).",
+      "Bước 3: Nhận kết quả bản giấy và bản điện tử của cả 03 thủ tục tại Bộ phận Một cửa UBND cấp xã hoặc qua bưu chính."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "TK-LTKS-01", "ten_giay_to": "Tờ khai điện tử liên thông đăng ký khai sinh, đăng ký thường trú, cấp thẻ BHYT (Mẫu số 01 Nghị định 63/2024/NĐ-CP)"},
+        {"form_id": "GCS-DT-02", "ten_giay_to": "Giấy chứng sinh điện tử được liên thông từ cơ sở khám chữa bệnh (hoặc bản chụp Giấy chứng sinh giấy)"}
+      ],
+      "dieu_kien_bat_buoc": "Trẻ em dưới 06 tuổi được đăng ký thường trú về cùng cha, mẹ hoặc người giám hộ (nếu chỗ ở hợp pháp không thuộc sở hữu của cha mẹ thì phải có xác nhận đồng ý của chủ hộ và chủ sở hữu trên ứng dụng VNeID hoặc văn bản). Không yêu cầu nộp Sổ hộ khẩu giấy."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 3,
+      "don_vi_tinh": "ngày làm việc (kể từ khi các cơ quan có thẩm quyền nhận đầy đủ hồ sơ điện tử; nếu có xác minh thì không quá 05 ngày làm việc)",
+      "chi_tiet": "Giải quyết trọn gói cả 03 thủ tục trong tối đa 03 ngày làm việc theo Điều 8 Nghị định 63/2024/NĐ-CP."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn 100% lệ phí (0 VNĐ) đối với đăng ký khai sinh đúng hạn, cấp thẻ BHYT và đăng ký thường trú trực tuyến cho trẻ em dưới 06 tuổi."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "nd63-2024-d8",
+        "so_hieu_van_ban": "Nghị định số 63/2024/NĐ-CP của Chính phủ",
+        "dieu_khoan_diem": "Điều 5, Điều 7, Điều 8 (Quy trình liên thông điện tử khai sinh, thường trú, cấp thẻ BHYT)",
+        "ngay_hieu_luc": "2024-07-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-HT-07",
+      "ten_thu_tuc": "Thủ tục chứng thực bản sao từ bản chính (sao y giấy tờ, văn bản) và chứng thực bản sao điện tử",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Hộ tịch",
+      "cap_tham_quyen": ["UBND cấp xã", "Phòng Tư pháp thuộc UBND cấp huyện", "Tổ chức hành nghề công chứng"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người yêu cầu xuất trình bản chính giấy tờ, văn bản cần chứng thực (và bản sao nếu đã tự chụp) tại UBND cấp xã hoặc đặt lịch chứng thực bản sao điện tử trên Cổng Dịch vụ công.",
+      "Bước 2: Người thực hiện chứng thực kiểm tra bản chính, đối chiếu với bản sao hoặc quét bản chính để ký số bản sao điện tử.",
+      "Bước 3: Trả kết quả bản sao chứng thực ngay trong ngày làm việc (hoặc gửi bản sao điện tử có chữ ký số vào Kho quản lý dữ liệu điện tử của công dân)."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "BC-GTO-01", "ten_giay_to": "Bản chính giấy tờ, văn bản làm cơ sở để chứng thực bản sao"},
+        {"form_id": "BS-CT-02", "ten_giay_to": "Bản sao cần chứng thực (trường hợp cơ quan không có phương tiện chụp hoặc chứng thực giấy)"}
+      ],
+      "dieu_kien_bat_buoc": "Việc chứng thực bản sao từ bản chính không phụ thuộc vào nơi cư trú của người yêu cầu chứng thực. Bản chính không được bị tẩy xóa, sửa chữa, hư hỏng không xác định được nội dung hoặc đóng dấu mật của cơ quan nhà nước."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 1,
+      "don_vi_tinh": "ngày làm việc (giải quyết ngay trong ngày tiếp nhận yêu cầu; nếu tiếp nhận sau 15 giờ thì trả kết quả trong ngày làm việc tiếp theo)",
+      "chi_tiet": "Trả kết quả ngay trong ngày tiếp nhận yêu cầu theo Điều 7 Nghị định 23/2015/NĐ-CP."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 2000,
+      "mo_ta": "Phí chứng thực bản sao từ bản chính: 2.000 VNĐ/trang từ trang thứ 1 đến trang thứ 2; từ trang thứ 3 trở lên thu 1.000 VNĐ/trang, tối đa không quá 200.000 VNĐ/bản."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "nd23-2015-d20",
+        "so_hieu_van_ban": "Nghị định số 23/2015/NĐ-CP và Nghị định số 45/2020/NĐ-CP",
+        "dieu_khoan_diem": "Điều 5, Điều 7, Điều 20 Nghị định 23/2015/NĐ-CP; Điều 10 Nghị định 45/2020/NĐ-CP",
+        "ngay_hieu_luc": "2020-05-22",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-CT-03",
+      "ten_thu_tuc": "Thủ tục cấp tài khoản định danh điện tử mức độ 2 (VNeID mức 2) cho công dân Việt Nam",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Cư trú & Căn cước",
+      "cap_tham_quyen": ["Công an cấp xã", "Cơ quan quản lý căn cước Công an cấp huyện", "Cơ quan quản lý căn cước Công an cấp tỉnh"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Công dân xuất trình thẻ Căn cước gắn chíp tại Công an xã/phường/thị trấn hoặc cơ quan cấp thẻ Căn cước (không phụ thuộc nơi cư trú).",
+      "Bước 2: Cán bộ công an thu nhận ảnh khuôn mặt, vân tay, số điện thoại chính chủ và in Phiếu đề nghị cấp tài khoản định danh điện tử để công dân ký xác nhận.",
+      "Bước 3: Hệ thống gửi tin nhắn SMS thông báo phê duyệt để công dân kích hoạt VNeID mức 2 trên điện thoại và tích hợp giấy phép lái xe, thẻ BHYT, đăng ký xe."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "TK-VNEID-01", "ten_giay_to": "Phiếu đề nghị cấp tài khoản định danh điện tử (Mẫu TK01 Nghị định 69/2024/NĐ-CP)"},
+        {"form_id": "CCCD-CHIP-02", "ten_giay_to": "Thẻ Căn cước gắn chíp điện tử còn hiệu lực và số thuê bao di động đã chuẩn hóa chính chủ"}
+      ],
+      "dieu_kien_bat_buoc": "Công dân phải có thẻ Căn cước gắn chíp điện tử còn giá trị sử dụng (hoặc thực hiện đồng thời khi làm thủ tục cấp/đổi thẻ Căn cước). Tài khoản định danh điện tử mức độ 2 có giá trị tương đương việc sử dụng thẻ Căn cước và các giấy tờ đã được tích hợp khi thực hiện giao dịch hành chính."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 3,
+      "don_vi_tinh": "ngày làm việc (đối với công dân đã có thẻ Căn cước gắn chíp; không quá 07 ngày làm việc đối với trường hợp chưa có thẻ Căn cước gắn chíp)",
+      "chi_tiet": "Tối đa 03 ngày làm việc kể từ ngày nhận đủ hồ sơ hợp lệ theo Điều 17 Nghị định 69/2024/NĐ-CP."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn 100% chi phí đăng ký và kích hoạt tài khoản định danh điện tử mức độ 2 cho công dân (0 VNĐ)."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "nd69-2024-d14",
+        "so_hieu_van_ban": "Nghị định số 69/2024/NĐ-CP về định danh và xác thực điện tử",
+        "dieu_khoan_diem": "Điều 14, Điều 17 (Trình tự, thủ tục và thời hạn cấp tài khoản định danh điện tử mức độ 2)",
+        "ngay_hieu_luc": "2024-07-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHC-CT-04",
+      "ten_thu_tuc": "Thủ tục khai báo tạm vắng cho công dân đi khỏi nơi cư trú",
+      "phan_nhom": "Thủ tục hành chính",
+      "linh_vuc": "Cư trú & Căn cước",
+      "cap_tham_quyen": ["Công an cấp xã", "Ứng dụng VNeID / Cổng Dịch vụ công Bộ Công an"],
+      "giai_doan_to_tung": []
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Công dân nộp Phiếu khai báo tạm vắng trực tiếp tại Công an cấp xã nơi cư trú hoặc khai báo trực tuyến qua ứng dụng VNeID / Cổng Dịch vụ công.",
+      "Bước 2: Công an cấp xã kiểm tra thông tin và cập nhật nội dung tạm vắng vào Cơ sở dữ liệu về cư trú.",
+      "Bước 3: Thông báo hoặc cấp phần xác nhận đã khai báo tạm vắng cho công dân ngay trong ngày làm việc."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "PKB-CT03-TV", "ten_giay_to": "Phiếu khai báo tạm vắng (Mẫu CT03 Thông tư 66/2023/TT-BCA)"},
+        {"form_id": "VB-CQTT-02", "ten_giay_to": "Văn bản đồng ý của cơ quan đang quản lý, giám sát hoặc thi hành án (đối với bị can, bị cáo đang tại ngoại, người hưởng án treo, người chấp hành án ngoài tù)"}
+      ],
+      "dieu_kien_bat_buoc": "Công dân bắt buộc phải khai báo tạm vắng khi đi khỏi phạm vi đơn vị hành chính cấp xã nơi đang cư trú từ 01 ngày trở lên đối với bị can, bị cáo đang tại ngoại, người bị kết án hưởng án treo, cải tạo không giam giữ; hoặc đi khỏi cấp huyện từ 03 tháng liên tục trở lên đối với người trong độ tuổi thực hiện nghĩa vụ quân sự; hoặc đi khỏi cấp xã từ 12 tháng liên tục trở lên đối với công dân thông thường."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 1,
+      "don_vi_tinh": "ngày làm việc (giải quyết ngay trong ngày tiếp nhận yêu cầu hợp lệ)",
+      "chi_tiet": "Tối đa 01 ngày làm việc theo Khoản 4 Điều 31 Luật Cư trú 2020."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ) khi thực hiện khai báo tạm vắng."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "lct2020-d31",
+        "so_hieu_van_ban": "Luật Cư trú số 68/2020/QH14",
+        "dieu_khoan_diem": "Điều 31 (Khai báo tạm vắng)",
+        "ngay_hieu_luc": "2021-07-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHS-KN-475",
+      "ten_thu_tuc": "Thủ tục khiếu nại quyết định, hành vi tố tụng trong tố tụng hình sự (khiếu nại lệnh bắt, tạm giữ, tạm giam, quyết định không khởi tố)",
+      "phan_nhom": "Tố tụng hình sự",
+      "linh_vuc": "Tiếp nhận & Giải quyết tố giác, tin báo về tội phạm",
+      "cap_tham_quyen": ["Thủ trưởng Cơ quan Cảnh sát điều tra", "Viện trưởng Viện kiểm sát", "Chánh án Tòa án"],
+      "giai_doan_to_tung": ["Khởi tố - Giải quyết nguồn tin về tội phạm", "Điều tra", "Truy tố", "Xét xử", "Thi hành án"]
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người khiếu nại gửi Đơn khiếu nại kèm tài liệu, chứng cứ đến cơ quan, người có thẩm quyền giải quyết khiếu nại theo giai đoạn tố tụng.",
+      "Bước 2: Cơ quan tiếp nhận vào sổ thụ lý và yêu cầu người bị khiếu nại giải trình bằng văn bản.",
+      "Bước 3: Ban hành Quyết định giải quyết khiếu nại lần đầu (đối với khiếu nại lệnh bắt, tạm giữ, tạm giam thì Viện trưởng Viện kiểm sát phải giải quyết trong 24 giờ)."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-KNTT-01", "ten_giay_to": "Đơn khiếu nại quyết định, hành vi tố tụng ghi rõ nội dung quyết định/hành vi bị khiếu nại và yêu cầu giải quyết"},
+        {"form_id": "QD-BKN-02", "ten_giay_to": "Bản sao quyết định tố tụng bị khiếu nại (nếu có) và tài liệu, chứng cứ chứng minh khiếu nại có căn cứ"}
+      ],
+      "dieu_kien_bat_buoc": "Thời hiệu khiếu nại là 15 ngày kể từ ngày người khiếu nại nhận được hoặc biết được quyết định, hành vi tố tụng mà người đó cho rằng có vi phạm pháp luật (trường hợp vì lý do bất khả kháng hoặc trở ngại khách quan thì thời gian đó không tính vào thời hiệu khiếu nại theo Điều 471 BLTTHS)."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 7,
+      "don_vi_tinh": "ngày (kể từ ngày nhận được khiếu nại đối với quyết định, hành vi của Điều tra viên, Kiểm sát viên, Thẩm phán; riêng khiếu nại lệnh bắt, tạm giữ, tạm giam phải giải quyết trong 24 giờ)",
+      "chi_tiet": "Tối đa 07 ngày đối với khiếu nại lần đầu thuộc thẩm quyền Thủ trưởng CQĐT / Viện trưởng VKS / Chánh án Tòa án theo Điều 475, 476, 477 BLTTHS."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Miễn lệ phí hoàn toàn (0 VNĐ) đối với thủ tục khiếu nại trong tố tụng hình sự."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "bltths2015-d475",
+        "so_hieu_van_ban": "Bộ luật Tố tụng Hình sự số 101/2015/QH13",
+        "dieu_khoan_diem": "Điều 469, Điều 471, Điều 474, Điều 475 (Quyền, thời hiệu và thời hạn giải quyết khiếu nại trong tố tụng hình sự)",
+        "ngay_hieu_luc": "2018-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
+  },
+  {
+    "ma_va_ten_thu_tuc": {
+      "ma_thu_tuc": "TTHS-TGPL-007",
+      "ten_thu_tuc": "Thủ tục yêu cầu Trợ giúp pháp lý miễn phí (cử Luật sư/Trợ giúp viên pháp lý bào chữa, bảo vệ miễn phí trong vụ án hình sự)",
+      "phan_nhom": "Tố tụng hình sự",
+      "linh_vuc": "Biện pháp ngăn chặn",
+      "cap_tham_quyen": ["Trung tâm trợ giúp pháp lý nhà nước thuộc Sở Tư pháp", "Chi nhánh của Trung tâm trợ giúp pháp lý nhà nước"],
+      "giai_doan_to_tung": ["Khởi tố - Giải quyết nguồn tin về tội phạm", "Điều tra", "Truy tố", "Xét xử"]
+    },
+    "trinh_tu_thuc_hien": [
+      "Bước 1: Người thuộc diện được trợ giúp pháp lý (hoặc người thân thích, cơ quan tiến hành tố tụng) nộp hồ sơ yêu cầu tại Trung tâm trợ giúp pháp lý nhà nước thuộc Sở Tư pháp.",
+      "Bước 2: Trung tâm kiểm tra giấy tờ chứng minh đối tượng được trợ giúp pháp lý và thụ lý ngay hồ sơ.",
+      "Bước 3: Giám đốc Trung tâm ra quyết định cử Trợ giúp viên pháp lý hoặc Luật sư ký hợp đồng thực hiện bào chữa, bảo vệ quyền và lợi ích hợp pháp hoàn toàn miễn phí."
+    ],
+    "thanh_phan_ho_so": {
+      "giay_to_bat_buoc": [
+        {"form_id": "DON-TGPL-01", "ten_giay_to": "Đơn yêu cầu trợ giúp pháp lý (Mẫu số 02-TP-TGPL)"},
+        {"form_id": "GT-DTTGPL-02", "ten_giay_to": "Giấy tờ chứng minh thuộc diện được trợ giúp pháp lý (Giấy chứng nhận hộ nghèo/cận nghèo, giấy tờ người có công, giấy khai sinh trẻ em/người từ đủ 16 đến dưới 18 tuổi...)"}
+      ],
+      "dieu_kien_bat_buoc": "Chỉ áp dụng miễn phí cho 07 nhóm đối tượng theo Điều 7 Luật Trợ giúp pháp lý 2017, bao gồm: Người có công với cách mạng; Người thuộc hộ nghèo; Trẻ em (dưới 16 tuổi); Người dân tộc thiểu số cư trú ở vùng có điều kiện kinh tế - xã hội đặc biệt khó khăn; Người bị buộc tội từ đủ 16 tuổi đến dưới 18 tuổi; Người bị buộc tội thuộc hộ cận nghèo; Người khuyết tật, người cao tuổi, nạn nhân bạo lực gia đình có khó khăn về tài chính."
+    },
+    "thoi_han_giai_quyet": {
+      "so_ngay_toi_da": 3,
+      "don_vi_tinh": "ngày làm việc (kể từ ngày nhận đủ hồ sơ hợp lệ để cử người thực hiện trợ giúp pháp lý tham gia tố tụng)",
+      "chi_tiet": "Thụ lý ngay khi nhận đủ hồ sơ và cử người bào chữa/bảo vệ trong tối đa 03 ngày làm việc (trường hợp người bị bắt, tạm giữ thì cử ngay trong 12 giờ kể từ khi nhận thông báo của cơ quan tố tụng)."
+    },
+    "le_phi": {
+      "muc_phi_vnd": 0,
+      "mo_ta": "Hoàn toàn miễn phí (0 VNĐ); người được trợ giúp pháp lý không phải trả bất kỳ khoản thù lao luật sư hay chi phí hành chính nào."
+    },
+    "can_cu_phap_ly": [
+      {
+        "law_id": "ltgpl2017-d7",
+        "so_hieu_van_ban": "Luật Trợ giúp pháp lý số 11/2017/QH14",
+        "dieu_khoan_diem": "Điều 7, Điều 29, Điều 30, Điều 31 (Người được trợ giúp pháp lý và thủ tục cử người bào chữa miễn phí)",
+        "ngay_hieu_luc": "2018-01-01",
+        "trang_thai_hieu_luc": "ĐANG HIỆU LỰC",
+        "van_ban_thay_the": null
+      }
+    ]
   }
 ]

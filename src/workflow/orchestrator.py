@@ -21,10 +21,11 @@ from src.workflow.state import LegalWorkflowState
 
 
 _FOLLOWUP_TRIGGERS = (
-    "lệ phí", "bao nhiêu tiền", "mất phí", "tốn bao nhiêu",
-    "bao lâu", "mấy ngày", "thời hạn", "nộp ở đâu", "cơ quan nào",
-    "cần giấy tờ gì", "hồ sơ gồm", "biểu mẫu nào", "cần những gì",
-    "thế còn", "vậy thì", "còn điều kiện", "trình tự thế nào",
+    "lệ phí", "bao nhiêu tiền", "mất phí", "tốn bao nhiêu", "phí bao nhiêu",
+    "bao lâu", "mấy ngày", "thời hạn", "nộp ở đâu", "cơ quan nào", "làm ở đâu",
+    "cần giấy tờ gì", "giấy tờ gì", "hồ sơ gồm", "biểu mẫu nào", "cần những gì", "chuẩn bị gì",
+    "các bước", "trình tự", "quy trình", "làm thế nào", "điều kiện", "lưu ý gì",
+    "online", "trực tuyến", "thế còn", "vậy thì", "còn điều kiện", "trình tự thế nào",
 )
 
 
@@ -33,21 +34,31 @@ def contextualize_followup_query(
     chat_history: Optional[List[Dict[str, str]]] = None,
 ) -> str:
     """
-    Nếu người dùng đặt câu hỏi nối tiếp ngắn gọn (VD: 'Nộp ở đâu?', 'Lệ phí bao nhiêu?'),
-    tự động ghép ngữ cảnh từ lượt hỏi liền trước trong `chat_history` để Retriever tìm đúng hồ sơ.
+    Nếu người dùng đặt câu hỏi nối tiếp trong Chatbot (VD: 'Nộp ở đâu?', 'Lệ phí bao nhiêu?',
+    'Cần chuẩn bị giấy tờ gì?'), tự động kiểm tra xem câu hỏi mới đã chuyển sang thủ tục khác chưa;
+    nếu chưa chuyển chủ đề thì ghép ngữ cảnh thủ tục của lượt liền trước để Retriever giữ đúng mạch hội thoại.
     """
     if not chat_history:
         return query
     q_clean = query.strip()
     q_lower = q_clean.lower()
-    is_short_followup = len(q_clean.split()) <= 10 and any(t in q_lower for t in _FOLLOWUP_TRIGGERS)
+
+    # Nếu câu hỏi mới đã nhắc rõ một thủ tục mới trong từ điển pháp lý -> người dùng chuyển chủ đề
+    from src.retriever.query_rewriter import rewrite_query_and_route
+
+    new_routing = rewrite_query_and_route(q_clean)
+    if new_routing.get("matched_expansions"):
+        return query
+
+    is_short_followup = len(q_clean.split()) <= 16 and any(t in q_lower for t in _FOLLOWUP_TRIGGERS)
     if not is_short_followup:
         return query
 
     last_turn = chat_history[-1]
+    prev_code = last_turn.get("procedure_code") or ""
     prev_proc = last_turn.get("procedure_name") or ""
     prev_q = last_turn.get("query") or ""
-    anchor = prev_proc if prev_proc else prev_q
+    anchor = f"{prev_code} {prev_proc}".strip() if (prev_code or prev_proc) else prev_q
     if not anchor or anchor.lower() in q_lower:
         return query
     return f"{q_clean} (liên quan đến thủ tục trước đó: {anchor})"
