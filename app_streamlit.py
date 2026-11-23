@@ -20,8 +20,12 @@ from typing import Any, Dict, List, Optional
 import streamlit as st
 
 from src.consultant_agent import extract_procedure_graph_data
+from src.evaluation import run_full_benchmark_evaluation
 from src.judge_agent import get_legal_misconceptions_catalog
-from src.langgraph_workflow import run_legal_multi_agent_workflow
+from src.langgraph_workflow import (
+    run_legal_multi_agent_workflow,
+    stream_legal_multi_agent_workflow,
+)
 from src.retriever_agent import get_retriever_agent, search_direct_bm25
 
 BENCHMARK_PATH = Path(__file__).resolve().parent / "data" / "benchmark_50_questions.json"
@@ -175,6 +179,14 @@ a.fn-card:hover { border-color:var(--red); box-shadow:0 8px 22px rgba(185,28,28,
 .mini { border:1px solid #F3E3E3; border-left:4px solid var(--red); border-radius:10px; padding:10px 14px; background:#fff; }
 .mini .v { font-size:18px; font-weight:800; color:#111827; }
 .mini .l { font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
+.advisor-head { display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:10px 14px; margin:-4px -4px 12px -4px; border-radius:10px;
+  background:linear-gradient(90deg, #FFF5F5 0%, #FFFFFF 100%); border-left:4px solid var(--red); }
+.advisor-id { display:flex; align-items:center; gap:10px; }
+.advisor-avt { width:36px; height:36px; border-radius:50%; background:var(--red); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:800; }
+.advisor-title { font-size:14.5px; font-weight:800; color:var(--red-dark); line-height:1.2; }
+.advisor-sub { font-size:11.5px; color:var(--muted); }
 .irac-lbl { display:inline-block; font-size:11.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
   padding:3px 10px; border-radius:6px; margin:6px 0 4px 0; }
 .irac-i { background:#FEE2E2; color:#991B1B; }
@@ -377,30 +389,85 @@ def render_answer(state: Dict[str, Any]) -> None:
 
     left, right = st.columns([1.35, 1], gap="large")
     with left:
-        st.markdown('<div class="field-lbl">Ý kiến tư vấn (cấu trúc IRAC)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="field-lbl">💬 Lời tư vấn trực tiếp dành cho bạn</div>', unsafe_allow_html=True)
         with st.container(border=True):
             if draft.get("is_refusal"):
-                st.error(f"⛔ **Hệ thống từ chối trả lời:** {draft.get('refusal_reason')}")
-                st.markdown(draft.get("application", ""))
+                h(
+                    """
+<div class="advisor-head">
+  <div class="advisor-id">
+    <div class="advisor-avt">⚖</div>
+    <div>
+      <div class="advisor-title">Chuyên viên Tư vấn Pháp lý APCR-RAG</div>
+      <div class="advisor-sub">Cơ chế Từ chối An toàn · Không suy đoán ngoài văn bản luật</div>
+    </div>
+  </div>
+  <span class="badge b-expired">TỪ CHỐI AN TOÀN</span>
+</div>
+"""
+                )
+                st.markdown(draft.get("direct_advice") or draft.get("application", ""))
+                st.caption(f"Lý do hệ thống ghi nhận: {draft.get('refusal_reason')}")
             else:
-                st.markdown('<span class="irac-lbl irac-i">I · Vấn đề pháp lý</span>', unsafe_allow_html=True)
+                ver_badge = (
+                    '<span class="badge b-active">✓ ĐÃ KIỂM CHỨNG 2 LỚP</span>'
+                    if ver.get("passed")
+                    else '<span class="badge b-expired">⚠ CẦN ĐỐI CHIẾU THÊM</span>'
+                )
+                h(
+                    f"""
+<div class="advisor-head">
+  <div class="advisor-id">
+    <div class="advisor-avt">⚖</div>
+    <div>
+      <div class="advisor-title">Chuyên viên Tư vấn Pháp lý APCR-RAG</div>
+      <div class="advisor-sub">Giải đáp trực tiếp tình huống · Đã đối soát căn cứ pháp luật &amp; lệ phí</div>
+    </div>
+  </div>
+  {ver_badge}
+</div>
+"""
+                )
+                direct_txt = (draft.get("direct_advice") or "").strip() or (draft.get("conclusion") or "")
+                st.markdown(direct_txt)
+
+        if not draft.get("is_refusal"):
+            with st.expander("📑 Chi tiết phân tích & căn cứ pháp luật (chuẩn IRAC)", expanded=False):
+                st.markdown('<span class="irac-lbl irac-i">I · Vấn đề của bạn</span>', unsafe_allow_html=True)
                 st.markdown(draft.get("issue", ""))
                 st.markdown('<span class="irac-lbl irac-r">R · Căn cứ pháp luật</span>', unsafe_allow_html=True)
                 st.markdown(draft.get("rule", ""))
-                st.markdown('<span class="irac-lbl irac-a">A · Áp dụng vào tình huống</span>', unsafe_allow_html=True)
+                st.markdown('<span class="irac-lbl irac-a">A · Hướng dẫn thực hiện chi tiết</span>', unsafe_allow_html=True)
                 st.markdown(draft.get("application", ""))
-                st.markdown('<span class="irac-lbl irac-c">C · Kết luận & lưu ý</span>', unsafe_allow_html=True)
+                st.markdown('<span class="irac-lbl irac-c">C · Kết luận &amp; lưu ý</span>', unsafe_allow_html=True)
                 st.markdown(draft.get("conclusion", ""))
 
         with st.expander(f"🛡️ Nhật ký thẩm định 2 lớp của Judge Agent — {state.get('final_status', '')}", expanded=len(history) > 1):
             for step in history:
                 v = step["verification"]
                 tag = "Bản nháp đầu" if step["iteration"] == 1 else "Sau tự sửa lỗi"
+                l1_sc = int(float(v.get("layer1_score", 1.0)) * 100)
+                l2_sc = int(float(v.get("claim_coverage_score", 1.0)) * 100)
+                v_claims = v.get("verified_claims_count", 0)
+                t_claims = v.get("total_claims_count", 0)
+                fees_txt = ", ".join(f"{f:,} đ".replace(",", ".") for f in v.get("prose_extracted_fees", [])) or "Miễn phí / 0 đ"
+                days_txt = ", ".join(f"{d} ngày" for d in v.get("prose_extracted_days", [])) or "—"
                 if v["passed"]:
                     st.success(f"**Vòng {step['iteration']} ({tag}) — ĐẠT.** {v['critique_feedback']}")
                 else:
                     errs = "\n".join(f"- {e}" for e in v["layer1_errors"] + v["layer2_errors"])
                     st.error(f"**Vòng {step['iteration']} ({tag}) — PHÁT HIỆN LỖI, yêu cầu Consultant sửa:**\n{errs}")
+                st.caption(
+                    f"• Lớp 1 (Exact Match & Regex văn xuôi): **{l1_sc}%** | Bóc tách từ văn bản: Lệ phí [{fees_txt}] · Thời hạn [{days_txt}]  \n"
+                    f"• Lớp 2 (Claim-Level Semantic Coverage): **{l2_sc}%** ({v_claims}/{t_claims} mệnh đề điều kiện bắt buộc)"
+                )
+
+        trace = state.get("workflow_trace") or []
+        if trace:
+            with st.expander(f"⚙️ Tiến trình thực thi từng Agent ({state.get('execution_engine', 'LangGraph')})"):
+                for idx_t, tr in enumerate(trace, start=1):
+                    st.markdown(f"**Bước {idx_t} · {tr['label']}** (`{tr['latency_ms']} ms`) — {tr['summary']}")
+
         routing = state.get("routing_info") or {}
         if routing.get("matched_expansions"):
             st.caption(f"🔎 Truy vấn đã được chuẩn hóa thuật ngữ · Miền: **{routing.get('detected_domain')}**")
@@ -485,9 +552,14 @@ def render_qa_page(kind: str) -> None:
         for i, s in enumerate(samples):
             s_cols[i].button(s, key=f"{kind}_s{i}", on_click=set_query, args=(q_key, s), width="stretch")
 
+    hist_key = f"{kind}_history"
+    if hist_key not in st.session_state:
+        st.session_state[hist_key] = []
+
     if ask or res_key not in st.session_state:
-        with st.spinner("Đang truy xuất hồ sơ, lập luận IRAC và thẩm định 2 lớp..."):
-            st.session_state[res_key] = run_legal_multi_agent_workflow(
+        final_state: Dict[str, Any] = {}
+        with st.status("Đang điều phối 3 tác tử (Retriever → Consultant → Judge)...", expanded=bool(ask)) as status_box:
+            for event in stream_legal_multi_agent_workflow(
                 query=st.session_state[q_key],
                 phan_nhom_filter=phan_nhom,
                 linh_vuc_filter=linh_vuc,
@@ -495,7 +567,28 @@ def render_qa_page(kind: str) -> None:
                 effective_date=str(eff_date) if eff_date else None,
                 only_active=True,
                 simulate_initial_error=simulate,
+                chat_history=st.session_state[hist_key],
+            ):
+                if event["node"] != "__end__":
+                    st.write(f"• **{event['label']}** (`{event['latency_ms']} ms`): {event['summary']}")
+                final_state = event["state"]
+            status_box.update(
+                label=f"Hoàn tất tư vấn ({final_state.get('final_status', 'DONE')} · {final_state.get('total_latency_ms', 0):.0f} ms)",
+                state="complete",
+                expanded=False,
             )
+        st.session_state[res_key] = final_state
+        if ask:
+            proc_info = (final_state.get("primary_procedure") or {}).get("ma_va_ten_thu_tuc") or {}
+            st.session_state[hist_key].append(
+                {
+                    "query": st.session_state[q_key],
+                    "procedure_code": proc_info.get("ma_thu_tuc", ""),
+                    "procedure_name": proc_info.get("ten_thu_tuc", ""),
+                    "status": final_state.get("final_status", ""),
+                }
+            )
+            st.session_state[hist_key] = st.session_state[hist_key][-5:]
 
     state = st.session_state[res_key]
 
@@ -512,6 +605,14 @@ def render_qa_page(kind: str) -> None:
         h(f'<div class="timeline">{steps}</div>')
 
     render_answer(state)
+
+    if st.session_state[hist_key]:
+        with st.expander(f"💬 Lịch sử hội thoại đa lượt trong phiên ({len(st.session_state[hist_key])} lượt)"):
+            for i_h, turn in enumerate(reversed(st.session_state[hist_key]), start=1):
+                st.caption(f"{i_h}. “{turn['query']}” → `{turn['procedure_code'] or 'N/A'}` ({turn['status']})")
+            if st.button("Xóa lịch sử hội thoại", key=f"{kind}_clear_hist"):
+                st.session_state[hist_key] = []
+                st.rerun()
 
 
 # ==============================================================================
@@ -671,26 +772,92 @@ def render_canh_bao() -> None:
             if st.button("Chạy thử tình huống này trên hệ thống", key=f"trap_{m['alert_id']}"):
                 with st.spinner("Đang xử lý..."):
                     res = run_legal_multi_agent_workflow(query=m["sample_test_query"], phan_nhom_filter=m["phan_nhom"])
-                st.markdown((res.get("irac_draft") or {}).get("conclusion", ""))
+                irac_res = res.get("irac_draft") or {}
+                st.markdown(irac_res.get("direct_advice") or irac_res.get("conclusion", ""))
         st.write("")
 
-    h('<div class="section-title">Đánh giá trên bộ 50 câu hỏi kiểm thử</div>')
+    h('<div class="section-title">Đánh giá Định lượng: Benchmark 50 câu, Ablation Study &amp; Confusion Matrix</div>')
     st.caption("25 câu hành chính + 25 câu tố tụng hình sự · 15 tra cứu đơn · 20 tình huống nhiều điều kiện · 15 câu gài bẫy.")
-    if st.button("▶ Chạy đánh giá Benchmark", type="primary"):
-        ok_id = ok_fee = ok_day = 0
-        prog = st.progress(0.0)
-        for i, q in enumerate(BENCHMARK):
-            res = run_legal_multi_agent_workflow(query=q["question"], phan_nhom_filter=q["phan_nhom"])
-            cit = (res.get("irac_draft") or {}).get("citations") or {}
-            ok_id += cit.get("ma_thu_tuc") == q["expected_ma_thu_tuc"]
-            ok_fee += int(cit.get("muc_phi_vnd", -1)) == q["expected_muc_phi_vnd"]
-            ok_day += int(cit.get("so_ngay_toi_da", -1)) == q["expected_so_ngay_toi_da"]
-            prog.progress((i + 1) / len(BENCHMARK))
-        n = max(1, len(BENCHMARK))
-        r1, r2, r3 = st.columns(3)
-        r1.metric("Truy xuất đúng thủ tục", f"{ok_id / n * 100:.1f}%")
-        r2.metric("Khớp lệ phí", f"{ok_fee / n * 100:.1f}%")
-        r3.metric("Khớp thời hạn", f"{ok_day / n * 100:.1f}%")
+    if st.button("▶ Chạy đánh giá Toàn diện (Benchmark + Ablation Study 4 cấu hình)", type="primary"):
+        with st.spinner("Đang chạy thực nghiệm đối chứng trên bộ 50 câu hỏi (4 cấu hình + Stress Test tự sửa lỗi)..."):
+            st.session_state["benchmark_full_report"] = run_full_benchmark_evaluation(include_ablation=True)
+
+    report = st.session_state.get("benchmark_full_report")
+    if report:
+        ma = report["multi_agent_apcr_rag"]
+        stress = report["self_revision_stress_test"]
+        cm_data = report["routing_confusion_matrix"]
+        r1, r2, r3, r4, r5 = st.columns(5)
+        r1.metric("Precision@1", f"{ma['precision_at_1_pct']:.1f}%")
+        r2.metric("Faithfulness (Phí+Hạn)", f"{ma['faithfulness_pct']:.1f}%")
+        r3.metric("Hallucination Rate", f"{ma['hallucination_rate_pct']:.1f}%")
+        r4.metric(
+            "Self-Revision thực tế",
+            f"{stress['self_revision_correction_rate_pct']:.1f}%",
+            delta=f"{stress['recovered_to_pass']}/{stress['total_stress_cases']} ca",
+        )
+        r5.metric("Routing Accuracy", f"{cm_data['accuracy_pct']:.1f}%")
+
+        st.markdown("##### 1. Bảng thí nghiệm cắt bỏ (Ablation Study — 4 cấu hình)")
+        ab_rows = report.get("ablation_study") or []
+        st.dataframe(
+            [
+                {
+                    "Cấu hình hệ thống": row["config"],
+                    "Precision@1 (%)": row["precision_at_1_pct"],
+                    "Recall@3 (%)": row["recall_at_3_pct"],
+                    "Faithfulness (%)": row["faithfulness_pct"],
+                    "Hallucination (%)": row["hallucination_rate_pct"],
+                    "Claim Coverage (%)": row["claim_coverage_pct"],
+                    "Độ trễ TB (ms)": row["avg_latency_ms"],
+                }
+                for row in ab_rows
+            ],
+            width="stretch",
+            hide_index=True,
+        )
+
+        col_cm, col_ragas = st.columns(2, gap="large")
+        with col_cm:
+            st.markdown("##### 2. Ma trận nhầm lẫn Định tuyến (Confusion Matrix 2×2)")
+            mx = cm_data["matrix"]
+            st.dataframe(
+                [
+                    {
+                        "Thực tế \\ Dự đoán": "Thủ tục hành chính",
+                        "Dự đoán: Hành chính": mx["actual_hanh_chinh_pred_hanh_chinh"],
+                        "Dự đoán: Tố tụng hình sự": mx["actual_hanh_chinh_pred_hinh_su"],
+                    },
+                    {
+                        "Thực tế \\ Dự đoán": "Tố tụng hình sự",
+                        "Dự đoán: Hành chính": mx["actual_hinh_su_pred_hanh_chinh"],
+                        "Dự đoán: Tố tụng hình sự": mx["actual_hinh_su_pred_hinh_su"],
+                    },
+                ],
+                width="stretch",
+                hide_index=True,
+            )
+            st.caption(
+                f"Accuracy: **{cm_data['accuracy_pct']}%** · Precision: **{cm_data['precision_hanh_chinh_pct']}%** · "
+                f"Recall: **{cm_data['recall_hanh_chinh_pct']}%** · F1-Score: **{cm_data['f1_hanh_chinh_pct']}%**"
+            )
+        with col_ragas:
+            st.markdown("##### 3. Trạng thái Đánh giá RAGAS & Xuất dữ liệu Báo cáo")
+            ragas_info = report.get("ragas_evaluation") or {}
+            if ragas_info.get("available"):
+                st.success(f"RAGAS Live Scores: {ragas_info.get('scores_pct')}")
+            else:
+                st.info(
+                    f"Chế độ đánh giá hiện tại: **Deterministic Proxy** (Claim Coverage: **{ma['claim_coverage_pct']}%**). "
+                    f"{ragas_info.get('note', '')}"
+                )
+            st.download_button(
+                "⬇ Tải toàn bộ kết quả Benchmark + Ablation (JSON)",
+                data=json.dumps(report, ensure_ascii=False, indent=2),
+                file_name="apcr_rag_benchmark_ablation_report.json",
+                mime="application/json",
+                width="stretch",
+            )
     with st.expander("Danh sách 50 câu hỏi kiểm thử"):
         st.dataframe(
             [{"Mã": b["question_id"], "Câu hỏi": b["question"], "Nhóm": b["phan_nhom"], "Độ khó": b["difficulty"],

@@ -1,7 +1,9 @@
 """
 NHÁNH VŨ GIA ANH ĐỨC — Module IRAC Synthesizer:
 - Kết nối Gemini Structured Output (nếu có GOOGLE_API_KEY).
-- Tổng hợp lập luận chuẩn IRAC trực tiếp từ Lược đồ 6 trường JSON kèm xử lý Self-Revision.
+- Tổng hợp lời tư vấn tự nhiên (`direct_advice`) như chuyên viên pháp lý trả lời trực tiếp,
+  kết hợp lập luận chuẩn IRAC (`issue`, `rule`, `application`, `conclusion`) từ Lược đồ 6 trường JSON
+  để đáp ứng đầy đủ kiểm chứng 2 lớp của Judge Agent.
 """
 
 from __future__ import annotations
@@ -9,6 +11,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Optional
 
+from src.consultant.conversational_advisor import build_direct_advice
 from src.consultant.prompts import IRAC_SYSTEM_PROMPT
 from src.core.llm_factory import get_chat_llm
 from src.schemas import CitationMetadata, IRACOutput
@@ -50,6 +53,8 @@ def try_generate_with_gemini(
             f"{revision_prompt}"
         )
         result: IRACOutput = structured_llm.invoke(user_message)
+        if not result.direct_advice:
+            result.direct_advice = build_direct_advice(query, primary_proc, expired_alerts)
         result.confidence_score = round(min(0.99, max(0.75, hybrid_score)), 2)
         return result
     except Exception:
@@ -66,8 +71,9 @@ def synthesize_structured_irac(
     simulate_initial_error: bool = False,
 ) -> IRACOutput:
     """
-    Tổng hợp câu trả lời chuẩn IRAC trực tiếp từ đối tượng JSON 6 trường,
-    đảm bảo đầy đủ Issue - Rule - Application - Conclusion và CitationMetadata.
+    Tổng hợp lời tư vấn tự nhiên (`direct_advice`) kết hợp lập luận chuẩn IRAC
+    trực tiếp từ đối tượng JSON 6 trường, bảo đảm cả tính thân thiện cho người dân
+    lẫn độ chính xác tuyệt đối khi đi qua Judge Agent 2 lớp.
     """
     info = primary_proc["ma_va_ten_thu_tuc"]
     steps = primary_proc["trinh_tu_thuc_hien"]
@@ -96,6 +102,11 @@ def synthesize_structured_irac(
         return IRACOutput(
             is_refusal=False,
             refusal_reason=None,
+            direct_advice=(
+                f"[BẢN NHÁP LẦN 1 — CHƯA QUA KIỂM CHỨNG]: Chào bạn, về vấn đề \"{query}\", "
+                f"bạn có thể liên hệ cơ quan hành chính gần nhất để làm {ten_tt}. "
+                f"Dự kiến thời gian chờ khoảng {fake_days} ngày và cần chuẩn bị khoản lệ phí {fake_fee:,} VNĐ."
+            ),
             issue=(
                 f"[BẢN NHÁP LẦN 1 - CHƯA QUA KIỂM CHỨNG] Giải quyết {ten_tt} (Mã: {ma_tt}) "
                 f"thuộc nhóm {phan_nhom}."
@@ -125,99 +136,109 @@ def synthesize_structured_irac(
             confidence_score=0.55,
         )
 
-    stage_str = f" | Giai đoạn tố tụng: {', '.join(giai_doan)}" if giai_doan else ""
+    direct_advice = build_direct_advice(
+        query=query,
+        primary_proc=primary_proc,
+        expired_alerts=expired_alerts,
+        revision_count=revision_count,
+    )
+
+    stage_note = (
+        f" thuộc giai đoạn **{', '.join(giai_doan)}**"
+        if giai_doan
+        else ""
+    )
     revision_badge = (
-        f" (Đã hiệu chỉnh chuẩn xác tại Vòng phản biện #{revision_count} theo yêu cầu của Judge Agent)"
+        f" *(đã được hiệu chỉnh chuẩn xác tại Vòng #{revision_count} theo phản biện của Judge Agent)*"
         if revision_count > 0
         else ""
     )
+
     issue_text = (
-        f"Xác định thủ tục pháp lý cần thực hiện: **{ten_tt}** (Mã định danh: `{ma_tt}`){revision_badge}.\n"
-        f"- **Phân nhóm**: {phan_nhom} — **Lĩnh vực**: {linh_vuc}{stage_str}.\n"
-        f"- **Câu hỏi tình huống**: \"{query}\""
+        f"Với câu hỏi *\"{query}\"*, chuyên viên xác định vấn đề của bạn liên quan trực tiếp đến "
+        f"**{ten_tt}** (`{ma_tt}`) thuộc nhóm **{phan_nhom} — {linh_vuc}**{stage_note}{revision_badge}."
     )
 
     rule_lines = []
     for c in laws:
         replace_note = (
-            f" *(Đã được thay thế bởi: {c['van_ban_thay_the']})*"
+            f" — hiện đã được thay thế bởi **{c['van_ban_thay_the']}**"
             if c.get("van_ban_thay_the")
             else ""
         )
         rule_lines.append(
-            f"- **{c['so_hieu_van_ban']}** — **{c['dieu_khoan_diem']}** "
-            f"(Mã định danh: `{c['law_id']}`, Ngày hiệu lực: `{c['ngay_hieu_luc']}`, "
-            f"Trạng thái: **{c['trang_thai_hieu_luc']}**){replace_note}."
+            f"- Tình huống của bạn được điều chỉnh bởi **{c['so_hieu_van_ban']}** ({c['dieu_khoan_diem']}, "
+            f"mã `{c['law_id']}`), hiệu lực từ `{c['ngay_hieu_luc']}` — trạng thái **{c['trang_thai_hieu_luc']}**{replace_note}."
         )
 
     for exp in expired_alerts:
         exp_law = exp["can_cu_phap_ly"][0]
         rule_lines.append(
-            f"- ⚠️ **CẢNH BÁO VĂN BẢN HẾT HIỆU LỰC**: `{exp['ma_va_ten_thu_tuc']['ma_thu_tuc']}` — "
-            f"{exp_law['so_hieu_van_ban']} ({exp_law['dieu_khoan_diem']}) hiện ở trạng thái "
-            f"**{exp_law['trang_thai_hieu_luc']}**. Văn bản thay thế: **{exp_law.get('van_ban_thay_the')}**."
+            f"- ⚠️ **Lưu ý về quy định cũ đã hết hiệu lực**: `{exp['ma_va_ten_thu_tuc']['ma_thu_tuc']}` — "
+            f"{exp_law['so_hieu_van_ban']} ({exp_law['dieu_khoan_diem']}) hiện đã **{exp_law['trang_thai_hieu_luc']}** "
+            f"và được thay thế bằng **{exp_law.get('van_ban_thay_the')}**."
         )
 
     rule_text = "\n".join(rule_lines)
 
     forms_formatted = "\n".join(
-        f"  + `{g['form_id']}`: {g['ten_giay_to']}"
+        f"  + {g['ten_giay_to']} (mã biểu mẫu: `{g['form_id']}`)"
         for g in ho_so.get("giay_to_bat_buoc", [])
     )
     steps_formatted = "\n".join(f"  + {s}" for s in steps)
     fee_display = (
-        "0 VNĐ (Miễn lệ phí hoàn toàn)"
+        "0 VNĐ (Hoàn toàn miễn lệ phí)"
         if muc_phi == 0
         else f"{muc_phi:,} VNĐ".replace(",", ".")
     )
+    stage_explain = (
+        f" *(tương ứng với giai đoạn: {', '.join(giai_doan)})*"
+        if giai_doan
+        else ""
+    )
 
     application_text = (
-        f"**1. Cơ quan có thẩm quyền tiếp nhận & giải quyết**:\n"
-        f"  + {', '.join(cap_tq)}"
-        + (f" *(Phân theo giai đoạn tố tụng: {', '.join(giai_doan)})*" if giai_doan else "")
-        + "\n\n"
-        f"**2. Trình tự thực hiện chuẩn**:\n{steps_formatted}\n\n"
-        f"**3. Thành phần hồ sơ bắt buộc (kèm mã biểu mẫu)**:\n{forms_formatted}\n\n"
-        f"**4. Điều kiện pháp lý bắt buộc (Tiên quyết)**:\n"
+        f"Áp dụng quy định vào trường hợp của bạn, bạn cần thực hiện theo hướng dẫn chi tiết sau:\n\n"
+        f"**1. Nơi tiếp nhận & giải quyết hồ sơ:** Bạn nộp tại **{', '.join(cap_tq)}**{stage_explain}.\n\n"
+        f"**2. Các bước bạn cần làm:**\n{steps_formatted}\n\n"
+        f"**3. Giấy tờ bạn cần chuẩn bị (kèm mã biểu mẫu):**\n{forms_formatted}\n\n"
+        f"**4. Điều kiện bắt buộc cần lưu ý:**\n"
         f"  + ⚠️ {ho_so['dieu_kien_bat_buoc']}\n\n"
-        f"**5. Thời hạn giải quyết theo luật định**:\n"
-        f"  + Tối đa **{so_ngay}** {thoi_han['don_vi_tinh']}. {thoi_han['chi_tiet']}\n\n"
-        f"**6. Mức lệ phí nhà nước**:\n"
-        f"  + **{fee_display}**. {le_phi['mo_ta']}"
+        f"**5. Thời gian chờ giải quyết:** Tối đa **{so_ngay}** {thoi_han['don_vi_tinh']}. {thoi_han['chi_tiet']}\n\n"
+        f"**6. Lệ phí theo quy định:** **{fee_display}**. {le_phi['mo_ta']}"
     )
 
     trap_warnings: List[str] = []
     q_lower = query.lower()
     if "hộ khẩu" in q_lower or "hk07" in q_lower:
         trap_warnings.append(
-            "Kể từ ngày 01/01/2023, Sổ hộ khẩu giấy và Sổ tạm trú giấy đã hết hiệu lực hoàn toàn theo Luật Cư trú 2020; "
-            "cơ quan nhà nước không cấp mới và không được yêu cầu công dân xuất trình Sổ hộ khẩu giấy."
+            "Từ ngày 01/01/2023, Sổ hộ khẩu giấy và Sổ tạm trú giấy đã hết hiệu lực hoàn toàn; "
+            "cán bộ tiếp nhận không được phép yêu cầu bạn xuất trình Sổ hộ khẩu giấy."
         )
     if "cmnd" in q_lower or "9 số" in q_lower or "chứng minh nhân dân" in q_lower:
         trap_warnings.append(
-            "Kể từ ngày 01/01/2025, mọi Chứng minh nhân dân (9 số và 12 số) đều hết giá trị sử dụng theo Khoản 2 Điều 46 Luật Căn cước 2023, "
-            "bất kể thời hạn 15 năm in trên thẻ vẫn còn."
+            "Từ ngày 01/01/2025, mọi CMND (9 số và 12 số) đều đã hết giá trị sử dụng theo Khoản 2 Điều 46 Luật Căn cước 2023, "
+            "dù hạn 15 năm in trên thẻ cũ vẫn còn."
         )
     if ma_tt == "TTHS-BL-121" and ("1 người" in q_lower or "một mình" in q_lower):
         trap_warnings.append(
-            "Một cá nhân đơn lẻ KHÔNG đủ điều kiện nhận bảo lĩnh; pháp luật bắt buộc phải có ít nhất 02 người thân thích cùng đứng ra bảo lĩnh."
+            "Một người đơn lẻ không đủ điều kiện bảo lĩnh; bạn cần vận động thêm người nhà để có ít nhất 02 người thân thích cùng ký đơn cam đoan."
         )
     if ma_tt == "TTHS-TG-145" and ("lệ phí" in q_lower or "triệu" in q_lower or "phí" in q_lower):
         trap_warnings.append(
-            "Thủ tục trình báo, tố giác tội phạm được MIỄN PHÍ HOÀN TOÀN (0 VNĐ). Cảnh giác tuyệt đối với các đối tượng mạo danh công an/an ninh mạng yêu cầu chuyển phí thụ lý hồ sơ."
+            "Thủ tục tố giác tội phạm được miễn phí hoàn toàn (0 VNĐ); tuyệt đối không chuyển tiền cho bất kỳ ai tự xưng công an qua mạng."
         )
     if ma_tt == "TTHS-LLTP-045" and ("số 2" in q_lower and "ủy quyền" in q_lower):
         trap_warnings.append(
-            "Phiếu lý lịch tư pháp số 2 tuyệt đối KHÔNG được ủy quyền cho người khác làm hộ theo Khoản 2 Điều 46 Luật Lý lịch tư pháp."
+            "Riêng Phiếu lý lịch tư pháp số 2 tuyệt đối không được ủy quyền làm thay (chỉ Phiếu số 1 mới được ủy quyền)."
         )
 
     conclusion_text = (
-        f"Để thực hiện **{ten_tt}** (`{ma_tt}`), người dân nộp hồ sơ tại **{', '.join(cap_tq)}** "
-        f"với đầy đủ biểu mẫu ({', '.join(form_ids)}), thời hạn giải quyết tối đa **{so_ngay} ngày** "
-        f"và mức lệ phí **{fee_display}**."
+        f"Tóm lại, bạn chuẩn bị đầy đủ hồ sơ gồm các biểu mẫu ({', '.join(form_ids)}) và nộp tại **{', '.join(cap_tq)}** "
+        f"để được giải quyết **{ten_tt}** (`{ma_tt}`) trong tối đa **{so_ngay} ngày**, mức lệ phí **{fee_display}**."
     )
     if trap_warnings:
-        conclusion_text += "\n\n**CẢNH BÁO TRÁNH HIỂU NHẦM PHÁP LÝ**:\n- " + "\n- ".join(trap_warnings)
+        conclusion_text += "\n\n**Lời khuyên giúp bạn tránh hiểu nhầm:**\n- " + "\n- ".join(trap_warnings)
 
     citations = CitationMetadata(
         ma_thu_tuc=ma_tt,
@@ -233,6 +254,7 @@ def synthesize_structured_irac(
     return IRACOutput(
         is_refusal=False,
         refusal_reason=None,
+        direct_advice=direct_advice,
         issue=issue_text,
         rule=rule_text,
         application=application_text,
