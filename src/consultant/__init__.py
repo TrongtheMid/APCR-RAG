@@ -4,6 +4,7 @@ Bao g·ªìm System Prompts IRAC, Refusal Guard, IRAC Synthesizer, Graph Builder v√
 """
 
 from src.consultant.agent import ConsultantAgent
+from src.consultant.conversational_advisor import build_direct_advice
 from src.consultant.graph_builder import extract_procedure_graph_data
 from src.consultant.irac_synthesizer import (
     synthesize_structured_irac,
@@ -15,6 +16,7 @@ from src.consultant.refusal_guard import check_deterministic_refusal
 __all__ = [
     "IRAC_SYSTEM_PROMPT",
     "REFUSAL_TEMPLATE_MESSAGE",
+    "build_direct_advice",
     "check_deterministic_refusal",
     "try_generate_with_gemini",
     "synthesize_structured_irac",

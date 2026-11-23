@@ -1,6 +1,6 @@
 """
 Lược đồ Cấu trúc Đầu ra Lập luận Pháp lý IRAC (Issue - Rule - Application - Conclusion)
-và Siêu dữ liệu Trích dẫn (CitationMetadata) của Consultant Agent.
+kèm lời tư vấn trực tiếp tự nhiên (`direct_advice`) và Siêu dữ liệu Trích dẫn (`CitationMetadata`).
 """
 
 from typing import List, Optional
@@ -29,6 +29,10 @@ class IRACOutput(BaseModel):
     refusal_reason: Optional[str] = Field(
         default=None,
         description="Lý do từ chối trả lời chuẩn mực (nếu is_refusal = True)"
+    )
+    direct_advice: str = Field(
+        default="",
+        description="Lời tư vấn trực tiếp tự nhiên như chuyên viên pháp lý trả lời câu hỏi cụ thể của người dân"
     )
     issue: str = Field(
         ..., description="[I - ISSUE] Xác định vấn đề pháp lý, tên thủ tục và giai đoạn/phân nhóm cần giải quyết"

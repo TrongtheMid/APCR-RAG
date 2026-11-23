@@ -38,6 +38,7 @@ def check_deterministic_refusal(
         return IRACOutput(
             is_refusal=True,
             refusal_reason="Không tìm thấy hồ sơ thủ tục hoặc căn cứ pháp lý nào khớp với yêu cầu.",
+            direct_advice=REFUSAL_TEMPLATE_MESSAGE,
             issue="Yêu cầu nằm ngoài phạm vi kho dữ liệu pháp lý chuẩn hóa.",
             rule="Nguyên tắc An toàn Pháp lý — Không tư vấn khi thiếu căn cứ văn bản quy phạm pháp luật.",
             application=REFUSAL_TEMPLATE_MESSAGE,
@@ -57,6 +58,7 @@ def check_deterministic_refusal(
                 f"Điểm tương đồng truy xuất cao nhất ({best_score:.2f}) thấp hơn ngưỡng an toàn "
                 f"({min_score_threshold:.2f}) hoặc nội dung câu hỏi nằm ngoài phạm vi Thủ tục Hành chính & Tố tụng Hình sự."
             ),
+            direct_advice=REFUSAL_TEMPLATE_MESSAGE,
             issue="Câu hỏi chưa đủ căn cứ pháp lý xác thực trong hệ thống.",
             rule="Cơ chế Từ chối Trả lời Chủ động (Deterministic Refusal).",
             application=REFUSAL_TEMPLATE_MESSAGE,

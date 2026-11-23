@@ -1,5 +1,7 @@
 """
-NHÁNH PHẠM ĐỨC TRỌNG — Các Cạnh Điều kiện (Conditional Edges) trên Đồ thị LangGraph.
+NHÁNH PHẠM ĐỨC TRỌNG — Các Cạnh Điều kiện (Conditional Edges) trên Đồ thị LangGraph:
+- route_after_consultant: Hỗ trợ rẽ nhánh hỏi ngược làm rõ (clarify) hoặc đi tới Judge.
+- route_after_judge: Điều phối accept (PASS) / revise (Self-Revision Loop) / fallback.
 """
 
 from __future__ import annotations
@@ -7,6 +9,20 @@ from __future__ import annotations
 from typing import Literal
 
 from src.workflow.state import LegalWorkflowState
+
+
+def route_after_consultant(
+    state: LegalWorkflowState,
+) -> Literal["clarify", "judge"]:
+    """
+    Quyết định luồng đi sau Consultant Agent:
+    - 'clarify': Nếu thiếu dữ kiện quan trọng và Consultant bật cờ `needs_clarification`,
+      dừng sớm để hỏi ngược làm rõ với người dân.
+    - 'judge': Chuyển bản nháp IRAC sang Judge Agent thẩm định 2 lớp.
+    """
+    if state.get("needs_clarification", False) and state.get("clarification_question"):
+        return "clarify"
+    return "judge"
 
 
 def route_after_judge(
