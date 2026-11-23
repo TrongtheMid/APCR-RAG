@@ -153,4 +153,91 @@ GIẢNG VIÊN HƯỚNG DẪN: TS. NGHIÊM NGUYỄN VIỆT DŨNG
     * requirements.txt (Danh sách thư viện phụ thuộc của dự án)
     * .env.example (Tệp mẫu cấu hình tham số môi trường và API Key)
     * nhiệm vụ từng người.txt (Tài liệu phân công nhiệm vụ và ánh xạ kiến trúc module)
+
+================================================================================
+5. KẾ HOẠCH NÂNG CẤP GIAI ĐOẠN 2 & PHÂN CÔNG TRIỂN KHAI MỞ RỘNG
+   (CHUYỂN TỪ FALLBACK SANG AI THỰC CHIẾN — PHỤC VỤ BÁO CÁO CUỐI KỲ >= 15 TRANG)
+================================================================================
+
+5.1. BẢNG TỔNG HỢP PHÂN CÔNG NÂNG CẤP THEO NHÁNH (TRÁNH XUNG ĐỘT GIT)
+--------------------------------------------------------------------------------
+  + Nguyễn Hữu Hải Long | Nhánh Git: `upgrade/retriever-etl`
+    - Phạm vi file: `data/data_procedures.json`, `src/retriever/*`, `scripts/etl_ingest_procedures.py`
+  + Vũ Gia Anh Đức     | Nhánh Git: `upgrade/consultant-graph-docx`
+    - Phạm vi file: `src/core/llm_factory.py`, `src/consultant/*`, `src/baseline/*`
+  + Phạm Đức Trọng      | Nhánh Git: `upgrade/judge-ragas-workflow`
+    - Phạm vi file: `src/judge/*`, `src/workflow/*`, `src/evaluation/*`, `app_streamlit.py`, `tests/*`
+
+5.2. CHI TIẾT NHIỆM VỤ NÂNG CẤP CỦA TỪNG THÀNH VIÊN
+--------------------------------------------------------------------------------
+A. NGUYỄN HỮU HẢI LONG — Nâng cấp Tầng Dữ liệu & Truy hồi (`src/retriever/`, `data/`)
+  1. [Ưu tiên #1] Vector Store bền vững & Embedding tiếng Việt thật:
+     * File: `src/retriever/vector_store.py`, `src/retriever/agent.py`
+     * Chuyển `chromadb.EphemeralClient()` sang `chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)`.
+     * Cài đủ `chromadb`, `sentence-transformers`, `rank-bm25`; bật embedding tiếng Việt
+       (`BAAI/bge-m3` hoặc `vietnamese-bi-encoder`) thay thế `LightweightLegalEmbeddingFunction`.
+     * Bỏ dòng fallback gán tạm `vec_s = vector_scores_map.get(ma_tt, bm25_s)` trong `retrieve_hybrid`.
+  2. Tách từ NLP tiếng Việt, Hybrid RRF & Cross-Encoder Reranking:
+     * File: `src/retriever/tokenizer.py`, `src/retriever/agent.py`
+     * Tích hợp `underthesea` hoặc `pyvi` vào `tokenize_vietnamese` để giữ nguyên từ ghép pháp lý.
+     * Thay phép cộng min-max (`0.65 * BM25 + 0.35 * Vector`) bằng thuật toán Reciprocal Rank
+       Fusion (RRF) và thêm tầng Reranker (`BAAI/bge-reranker-v2-m3`) cho Top-K.
+  3. Thông minh hóa Query Rewriter & Bỏ hardcode cảnh báo hết hiệu lực:
+     * File: `src/retriever/query_rewriter.py`, `src/retriever/agent.py`
+     * Kết hợp `COLLOQUIAL_TO_LEGAL_MAP` với LLM Query Decomposition cho câu hỏi đa ý/liên thông.
+     * Thay hardcode kiểm tra `TTHC-CT-OLD-01` & `TTHC-CC-OLD-02` bằng truy vấn động các hồ sơ
+       có trạng thái `HẾT HIỆU LỰC` liên quan theo lĩnh vực/ngữ nghĩa.
+  4. [Mở rộng] Xây dựng Pipeline ETL nạp dữ liệu tự động (`scripts/etl_ingest_procedures.py`):
+     * Đọc PDF/DOCX từ Cổng DVCQG / VBPL, chuẩn hóa sang schema `ProcedureRecord` 6 trường
+       để mở rộng `data/data_procedures.json` từ 23 lên 50-100+ thủ tục.
+
+B. VŨ GIA ANH ĐỨC — Nâng cấp Tầng Lập luận, Đồ thị & Sinh Hồ sơ (`src/consultant/`, `src/baseline/`)
+  1. [Ưu tiên #1] Kích hoạt LLM thật (Gemini & Local Ollama Fallback) + Tối ưu Prompt:
+     * File: `src/core/llm_factory.py`, `src/consultant/prompts.py`, `src/consultant/irac_synthesizer.py`
+     * Cấu hình `langchain-google-genai` chạy ổn định với Structured Output (`IRACOutput`);
+       bổ sung tùy chọn Local LLM (Ollama: Qwen2.5 / Vistral) trong `get_chat_llm` để bảo mật.
+     * Tinh chỉnh Prompt Self-Revision giúp Consultant sửa chuẩn xác theo `critique_feedback`.
+  2. [Ưu tiên #1] Nâng cấp Baseline đối chứng chạy LLM thật:
+     * File: `src/baseline/single_agent_rag.py`
+     * Chạy `BaselineSingleAgentRAG` trên cùng mô hình LLM với Consultant để đảm bảo so sánh
+       định lượng giữa Multi-Agent và Single-Agent hoàn toàn khách quan.
+  3. [Mở rộng] Cơ chế Hỏi ngược làm rõ (Clarification) & Trí nhớ Hội thoại:
+     * File: `src/consultant/clarifier.py` (mới), `src/consultant/agent.py`
+     * Tự động hỏi ngược làm rõ khi thiếu dữ kiện phân định thẩm quyền (VD: kết hôn trong nước
+       vs có yếu tố nước ngoài; Phiếu LLTP số 1 vs số 2).
+  4. [Mở rộng] Đồ thị Tri thức liên thủ tục & Tự động xuất Biểu mẫu `.docx`:
+     * File: `src/consultant/graph_builder.py`, `src/consultant/form_generator.py` (mới)
+     * Mở rộng `extract_procedure_graph_data` bằng `networkx` liên kết các thủ tục liên thông
+       (VD: Bảo lĩnh Điều 121 <-> Đặt tiền Điều 122; Khai sinh <-> Thường trú).
+     * Tích hợp `python-docx` sinh mẫu đơn điền sẵn để người dân tải về sử dụng ngay.
+
+C. PHẠM ĐỨC TRỌNG — Nâng cấp Judge 2 Lớp, LangGraph, RAGAS & Giao diện (`src/judge/`, `src/workflow/`, `src/evaluation/`, `app_streamlit.py`)
+  1. [Ưu tiên #1] Nâng cấp Judge Lớp 1 (Regex kiểm tra chéo Văn xuôi vs Metadata):
+     * File: `src/judge/layer1_deterministic.py`
+     * Bổ sung Regex Extractor bóc tách số tiền (`VNĐ`, `đồng`), số ngày (`ngày làm việc`, `ngày`)
+       và mã biểu mẫu trực tiếp trong văn xuôi (`issue`, `rule`, `application`, `conclusion`) để
+       đối soát chéo với `draft.citations` và JSON gốc, chặn lỗi LLM khai đúng metadata nhưng viết sai text.
+  2. [Ưu tiên #1] Tổng quát hóa Judge Lớp 2 thành Claim-level Verification:
+     * File: `src/judge/layer2_semantic.py`
+     * Thay 3 điều kiện hardcode (`TTHS-BL-121`, `TTHS-TG-145`, `TTHS-LLTP-045`) bằng cơ chế kiểm chứng
+       từng mệnh đề (Claim-level Critic / LLM Critic) đối chiếu tổng quát với `dieu_kien_bat_buoc`.
+  3. Kích hoạt LangGraph `StateGraph` thật & Streaming Workflow:
+     * File: `src/workflow/state.py`, `src/workflow/edges.py`, `src/workflow/orchestrator.py`
+     * Cài đặt `langgraph` để `_build_langgraph()` chạy `StateGraph` thực sự; thêm `stream()` hiển thị
+       tiến trình từng Agent theo thời gian thực và hỗ trợ nhánh Clarification / Multi-turn.
+  4. [Ưu tiên #1] Nâng cấp Benchmark (RAGAS thật + Ablation Study), UI & Unit Test:
+     * File: `src/evaluation/benchmark_runner.py`, `app_streamlit.py`, `tests/` (mới)
+     * Bỏ giá trị gán cứng `self_revision_correction_rate_pct = 100.0`, tính theo tỷ lệ sửa lỗi thực tế.
+     * Tích hợp `ragas` đo `Faithfulness`, `Context Precision`, `Context Recall`, `Answer Relevancy`
+       và chạy thí nghiệm cắt bỏ Ablation Study 4 cấu hình + Confusion Matrix cho Báo cáo cuối kỳ.
+     * Hoàn thiện bộ kiểm thử tự động `pytest` trong thư mục `tests/` và cập nhật `README.md`.
+
+5.3. QUY TRÌNH PHỐI HỢP TÍCH HỢP (CẢ NHÓM THỰC HIỆN)
+--------------------------------------------------------------------------------
+  - Bước 1 (Chuẩn hóa môi trường): Tạo `venv`, chạy `pip install -r requirements.txt`, tạo `.env` từ
+    `.env.example` (tuyệt đối không commit API Key lên Git) và giữ nguyên interface giữa 3 package.
+  - Bước 2 (Phát triển song song): Code trên 3 nhánh Git riêng (`upgrade/retriever-etl`,
+    `upgrade/consultant-graph-docx`, `upgrade/judge-ragas-workflow`).
+  - Bước 3 (Ghép nối & Chốt số liệu Báo cáo): Long chốt dữ liệu & Retriever -> Đức & Trọng merge
+    Consultant & Judge -> Trọng chạy `pytest` + `benchmark_runner.py` xuất bảng số liệu chính thức.
 ================================================================================
