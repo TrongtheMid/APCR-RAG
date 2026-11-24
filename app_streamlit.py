@@ -1,12 +1,10 @@
 """
 APCR-RAG — ADMINISTRATIVE & PENAL CRIMINAL RAG
-Cổng tư vấn Thủ tục Hành chính & Tố tụng Hình sự (Multi-Agent RAG) — Nhóm 9, INT 3507 2
-
-Giao diện tông Đỏ — Trắng, gồm 4 chức năng chính:
-  1. Hỏi — Đáp Thủ tục Hành chính công   (Retriever -> Consultant IRAC -> Judge 2 lớp)
-  2. Hỏi — Đáp Thủ tục Tố tụng Hình sự   (phân định thẩm quyền theo giai đoạn tố tụng)
-  3. Cảnh báo hiểu nhầm pháp lý          (danh mục từ Judge Agent + đánh giá Benchmark 50 câu)
-  4. Tra cứu văn bản & thủ tục tức thì   (Zero-LLM: Rank-BM25 + lọc hiệu lực thời gian)
+Giao diện Trợ lý Pháp lý phong cách Google Gemini Chatbot:
+  - Thanh bên trái (Sidebar): Tạo cuộc trò chuyện mới, Lịch sử các phiên trò chuyện (lưu bền vững),
+    chuyển nhanh Công cụ (Trò chuyện Pháp lý, Tra cứu BM25 Zero-LLM, Cảnh báo & Benchmark) và Cài đặt lọc.
+  - Không gian chính (Main Canvas): Màn hình chào kiểu Gemini, luồng hội thoại tập trung thoáng đãng,
+    tích hợp gọn gàng Phân tích IRAC, Nhật ký Judge 2 lớp và Hồ sơ/Sơ đồ 6 trường ngay dưới câu trả lời.
 """
 
 from __future__ import annotations
@@ -14,6 +12,8 @@ from __future__ import annotations
 import datetime
 import html as html_lib
 import json
+import re
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -28,22 +28,24 @@ from src.langgraph_workflow import (
 )
 from src.retriever_agent import get_retriever_agent, search_direct_bm25
 
-BENCHMARK_PATH = Path(__file__).resolve().parent / "data" / "benchmark_50_questions.json"
+PROJECT_ROOT = Path(__file__).resolve().parent
+BENCHMARK_PATH = PROJECT_ROOT / "data" / "benchmark_50_questions.json"
+CHAT_HISTORY_FILE = PROJECT_ROOT / "data" / ".apcr_chat_sessions.json"
 
 st.set_page_config(
-    page_title="APCR-RAG | Tư vấn Thủ tục Hành chính & Tố tụng Hình sự",
-    page_icon="⚖️",
+    page_title="APCR-RAG · Trợ lý Pháp lý AI",
+    page_icon="✨",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 
 # ==============================================================================
-# TIỆN ÍCH
+# TIỆN ÍCH & LƯU TRỮ LỊCH SỬ TRÒ CHUYỆN
 # ==============================================================================
 
 def h(markup: str) -> None:
-    """Render HTML: bỏ thụt lề từng dòng để Markdown không hiểu nhầm thành khối code."""
+    """Render HTML an toàn (loại bỏ thụt lề để Markdown không hiểu nhầm thành code block)."""
     cleaned = "\n".join(line.strip() for line in markup.splitlines() if line.strip())
     st.markdown(cleaned, unsafe_allow_html=True)
 
@@ -54,6 +56,15 @@ def esc(text: Any) -> str:
 
 def fmt_fee(vnd: int) -> str:
     return "Miễn phí (0 đ)" if int(vnd) == 0 else f"{int(vnd):,} đ".replace(",", ".")
+
+
+def _md_basic_to_html(text: Any) -> str:
+    """Chuyển đổi an toàn Markdown cơ bản (**đậm**, *nghiêng*, `code`, xuống dòng) sang HTML cho ngăn kéo mượt."""
+    safe = esc(text or "")
+    safe = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", safe)
+    safe = re.sub(r"`([^`]+)`", r"<code>\1</code>", safe)
+    safe = re.sub(r"(?<!\*)\*([^*]+?)\*(?!\*)", r"<i>\1</i>", safe)
+    return safe.replace("\n", "<br/>")
 
 
 @st.cache_resource
@@ -69,263 +80,542 @@ def load_benchmark() -> List[Dict[str, Any]]:
     return []
 
 
+def _load_saved_conversations() -> List[Dict[str, Any]]:
+    if CHAT_HISTORY_FILE.exists():
+        try:
+            with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, list):
+                return data
+        except Exception:
+            pass
+    return []
+
+
+def _save_conversations(convs: List[Dict[str, Any]]) -> None:
+    try:
+        CHAT_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(CHAT_HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(convs[:30], f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+def _new_conversation() -> Dict[str, Any]:
+    return {
+        "id": uuid.uuid4().hex[:10],
+        "title": "Cuộc trò chuyện mới",
+        "created_at": datetime.datetime.now().strftime("%H:%M · %d/%m"),
+        "turns": [],
+    }
+
+
+def _init_session_state() -> None:
+    if "conversations" not in st.session_state:
+        saved = _load_saved_conversations()
+        st.session_state["conversations"] = saved if saved else [_new_conversation()]
+    if not st.session_state["conversations"]:
+        st.session_state["conversations"] = [_new_conversation()]
+    if "active_conv_id" not in st.session_state:
+        st.session_state["active_conv_id"] = st.session_state["conversations"][0]["id"]
+    if "active_view" not in st.session_state:
+        st.session_state["active_view"] = "chat"
+    if "pending_prompt" not in st.session_state:
+        st.session_state["pending_prompt"] = None
+
+
+def _get_active_conversation() -> Dict[str, Any]:
+    convs: List[Dict[str, Any]] = st.session_state["conversations"]
+    active_id = st.session_state.get("active_conv_id")
+    for c in convs:
+        if c["id"] == active_id:
+            return c
+    st.session_state["active_conv_id"] = convs[0]["id"]
+    return convs[0]
+
+
+def _create_and_select_new_chat() -> None:
+    convs: List[Dict[str, Any]] = st.session_state["conversations"]
+    if convs and not convs[0]["turns"]:
+        st.session_state["active_conv_id"] = convs[0]["id"]
+    else:
+        new_c = _new_conversation()
+        convs.insert(0, new_c)
+        st.session_state["active_conv_id"] = new_c["id"]
+        _save_conversations(convs)
+    st.session_state["active_view"] = "chat"
+
+
+def _delete_conversation(conv_id: str) -> None:
+    convs: List[Dict[str, Any]] = [
+        c for c in st.session_state["conversations"] if c["id"] != conv_id
+    ]
+    if not convs:
+        convs = [_new_conversation()]
+    st.session_state["conversations"] = convs
+    if st.session_state.get("active_conv_id") == conv_id:
+        st.session_state["active_conv_id"] = convs[0]["id"]
+    _save_conversations(convs)
+
+
 retriever = load_retriever()
 ALL_PROCS: List[Dict[str, Any]] = retriever.raw_procedures
 BENCHMARK = load_benchmark()
 MISCONCEPTIONS = get_legal_misconceptions_catalog()
-
-PAGES = {
-    "home": "Trang chủ",
-    "hanh_chinh": "Thủ tục hành chính",
-    "to_tung": "Tố tụng hình sự",
-    "canh_bao": "Cảnh báo hiểu nhầm",
-    "tra_cuu": "Tra cứu văn bản",
-    "huong_dan": "Hướng dẫn sử dụng",
-}
-current_page = st.query_params.get("page", "home")
-if current_page not in PAGES:
-    current_page = "home"
+_init_session_state()
 
 
 # ==============================================================================
-# CSS — TÔNG ĐỎ / TRẮNG
+# CSS — PHONG CÁCH GOOGLE GEMINI CHATBOT
 # ==============================================================================
 
 h(
     """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+
 :root {
-  --red: #B91C1C; --red-dark: #7F1D1D; --red-soft: #FEE2E2; --red-bg: #FFF5F5;
-  --gold: #D97706; --ink: #1F2937; --muted: #6B7280; --line: #F1D5D5;
+  --bg: #FFFFFF;
+  --sidebar-bg: #FFF5F5;
+  --surface: #FFF5F5;
+  --surface-hover: #FEE2E2;
+  --active-pill: #FEE2E2;
+  --active-ink: #991B1B;
+  --ink: #1F2937;
+  --muted: #6B7280;
+  --border: #F3D5D5;
+  --red: #B91C1C;
+  --red-dark: #7F1D1D;
+  --green-bg: #DCFCE7;
+  --green-ink: #166534;
+  --red-bg: #FEE2E2;
+  --red-ink: #991B1B;
+  --amber-bg: #FEF3C7;
+  --amber-ink: #92400E;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 html, body, [class*="css"], .stMarkdown, button, input, textarea {
   font-family: 'Be Vietnam Pro', 'Segoe UI', Roboto, sans-serif !important;
+  color: var(--ink);
 }
-header[data-testid="stHeader"], section[data-testid="stSidebar"],
-div[data-testid="collapsedControl"], #MainMenu, footer { display: none !important; }
-.stApp { background: #ffffff; }
-.block-container { padding: 0 2.4rem 0 2.4rem !important; max-width: 1280px !important; }
 
-/* ---------- HEADER ---------- */
-.apcr-header { display:flex; justify-content:space-between; align-items:center;
-  padding: 16px 4px 14px 4px; border-bottom: 3px solid var(--red); }
-.apcr-brand { display:flex; align-items:center; gap:14px; }
-.apcr-logo { width:52px; height:52px; border-radius:14px;
-  background: linear-gradient(145deg, #DC2626 0%, #7F1D1D 100%);
-  display:flex; align-items:center; justify-content:center; font-size:26px;
-  box-shadow: 0 4px 12px rgba(185,28,28,.30); color:#fff; }
-.apcr-name { font-size:22px; font-weight:800; color:var(--red); letter-spacing:.02em; line-height:1.1; }
-.apcr-tag { font-size:12.5px; font-weight:600; color:var(--red-dark); text-transform:uppercase; letter-spacing:.03em; }
-.apcr-team { border:1.5px solid var(--red); color:var(--red); border-radius:999px;
-  padding:6px 16px; font-size:12.5px; font-weight:600; background:#fff; }
+#MainMenu, footer { display: none !important; }
+header[data-testid="stHeader"] {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(8px);
+}
+.stApp { background: var(--bg); }
+.block-container {
+  padding-top: 3.6rem !important;
+  padding-bottom: 5.5rem !important;
+  max-width: 920px !important;
+}
 
-/* ---------- NAV ---------- */
-.apcr-nav { display:flex; gap:6px; padding:10px 0; border-bottom:1px solid var(--line); flex-wrap:wrap; }
-.apcr-nav a { text-decoration:none !important; color:var(--red-dark) !important; font-weight:700;
-  font-size:12.5px; padding:7px 14px; border-radius:8px; text-transform:uppercase; letter-spacing:.02em; }
-.apcr-nav a:hover { background:var(--red-bg); }
-.apcr-nav a.active { background:var(--red); color:#fff !important; box-shadow:0 2px 8px rgba(185,28,28,.25); }
+/* Thanh cuộn tinh gọn tông đỏ nhạt */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #E5B4B4; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #DC2626; }
 
-/* ---------- HERO ---------- */
-.apcr-hero { position:relative; overflow:hidden; margin:0 -2.4rem; padding:46px 3.2rem;
-  background: linear-gradient(100deg, #FFF7F5 0%, #FFFFFF 45%, #FEE2E2 100%);
-  display:flex; justify-content:space-between; align-items:center; min-height:250px; }
-.apcr-hero h1 { font-size:34px; font-weight:800; color:#111827; margin:0 0 10px 0; letter-spacing:.01em; line-height:1.2; }
-.apcr-hero h1 span { color:var(--red); }
-.apcr-hero p { font-size:15px; color:#4B5563; max-width:560px; line-height:1.6; margin:0; }
-.hero-chips { margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; }
-.hero-chip { background:#fff; border:1px solid var(--line); color:var(--red-dark);
-  border-radius:999px; padding:5px 12px; font-size:12px; font-weight:600; }
+/* ---------- SIDEBAR TÔNG ĐỎ NHẠT - TRẮNG ---------- */
+section[data-testid="stSidebar"] {
+  background: var(--sidebar-bg) !important;
+  border-right: 1px solid #F3D5D5 !important;
+}
+section[data-testid="stSidebar"] .block-container {
+  padding: 1rem 0.9rem 1.5rem 0.9rem !important;
+}
+.sb-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 6px 14px 6px;
+}
+.sb-spark {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%);
+  color: #FFFFFF; font-size: 18px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(185, 28, 28, 0.25);
+}
+.sb-title { font-size: 17px; font-weight: 700; color: var(--red-dark); line-height: 1.15; }
+.sb-sub { font-size: 11px; color: var(--muted); font-weight: 500; }
+.sb-section {
+  font-size: 11px; font-weight: 700; color: var(--red-dark);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin: 14px 4px 6px 6px;
+}
 
-/* ---------- HOME FUNCTION CARDS ---------- */
-.section-title { font-size:15px; font-weight:800; color:var(--red-dark); text-transform:uppercase;
-  letter-spacing:.04em; margin:28px 0 14px 0; display:flex; align-items:center; gap:10px; }
-.section-title::before { content:""; width:5px; height:20px; background:var(--red); border-radius:3px; }
-.fn-grid { display:grid; grid-template-columns: 1fr 1fr; gap:18px; }
-a.fn-card { display:flex; align-items:center; gap:18px; text-decoration:none !important;
-  background:#fff; border:1px solid #F3E3E3; border-radius:14px; padding:24px 22px;
-  box-shadow:0 2px 10px rgba(127,29,29,.05); transition:all .18s ease; }
-a.fn-card:hover { border-color:var(--red); box-shadow:0 8px 22px rgba(185,28,28,.14); transform:translateY(-2px); }
-.fn-icon { min-width:54px; height:54px; border-radius:12px; background:var(--red-soft);
-  display:flex; align-items:center; justify-content:center; font-size:26px; }
-.fn-body { flex:1; }
-.fn-title { font-size:16.5px; font-weight:700; color:#111827; margin-bottom:5px; }
-.fn-desc { font-size:13.5px; color:var(--muted); line-height:1.55; }
-.fn-arrow { color:var(--red); font-size:22px; font-weight:700; }
+/* Nút sidebar dạng pill đỏ nhạt */
+section[data-testid="stSidebar"] div.stButton > button {
+  border-radius: 999px !important;
+  border: none !important;
+  text-align: left !important;
+  justify-content: flex-start !important;
+  padding: 0.45rem 0.85rem !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+  transition: background 0.15s ease !important;
+}
+section[data-testid="stSidebar"] div.stButton > button[kind="secondary"] {
+  background: transparent !important;
+  color: #4B5563 !important;
+}
+section[data-testid="stSidebar"] div.stButton > button[kind="secondary"]:hover {
+  background: var(--surface-hover) !important;
+  color: var(--red-dark) !important;
+}
+section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
+  background: var(--active-pill) !important;
+  color: var(--active-ink) !important;
+  font-weight: 600 !important;
+}
+section[data-testid="stSidebar"] div.stButton > button[kind="primary"]:hover {
+  background: #FECACA !important;
+}
 
-.stat-strip { display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; }
-.stat-box { background:var(--red-bg); border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
-.stat-num { font-size:26px; font-weight:800; color:var(--red); line-height:1.1; }
-.stat-lbl { font-size:12.5px; color:#6B7280; margin-top:4px; font-weight:500; }
+/* ---------- TOP BAR CỐ ĐỊNH NHẸ ---------- */
+.gem-topbar {
+  position: sticky; top: 2.9rem; z-index: 20;
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #F8E4E4;
+  padding: 8px 4px 10px 4px;
+  margin-bottom: 10px;
+}
+.gem-model-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 18px; font-weight: 700; color: var(--red-dark);
+}
+.gem-model-sub {
+  font-size: 12px; font-weight: 600; color: var(--red-ink);
+  background: var(--surface); border: 1px solid #FECACA;
+  padding: 4px 12px; border-radius: 999px;
+}
+.gem-status-chip {
+  font-size: 11.5px; font-weight: 600; color: #166534;
+  background: #DCFCE7; border-radius: 999px; padding: 4px 12px;
+}
 
-.flow { display:flex; align-items:stretch; gap:10px; }
-.flow-step { flex:1; background:#fff; border:1px dashed #F0B4B4; border-radius:12px; padding:14px 16px; }
-.flow-step b { color:var(--red); font-size:13px; text-transform:uppercase; letter-spacing:.03em; }
-.flow-step div { font-size:13px; color:#4B5563; margin-top:4px; line-height:1.5; }
-.flow-arrow { display:flex; align-items:center; color:var(--red); font-size:22px; font-weight:800; }
+/* ---------- MÀN HÌNH CHÀO TÔNG ĐỎ ẤM ---------- */
+.gem-welcome {
+  max-width: 780px; margin: 4.5vh auto 26px auto; padding: 0 8px;
+}
+.gem-hello {
+  font-size: 40px; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em;
+  background: linear-gradient(90deg, #991B1B 0%, #DC2626 55%, #EA580C 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 6px;
+}
+.gem-subhello {
+  font-size: 24px; font-weight: 500; color: #9CA3AF; line-height: 1.3;
+  margin-bottom: 14px;
+}
+.gem-desc {
+  font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 660px;
+}
 
-/* ---------- PAGE BANNER ---------- */
-.page-banner { margin:0 -2.4rem 20px -2.4rem; padding:22px 3.2rem;
-  background: linear-gradient(90deg, #991B1B 0%, #B91C1C 55%, #DC2626 100%); color:#fff; }
-.crumb { font-size:12px; opacity:.85; margin-bottom:6px; }
-.crumb a { color:#fff !important; text-decoration:none !important; }
-.page-banner h2 { margin:0; font-size:24px; font-weight:800; color:#fff; }
-.page-banner p { margin:6px 0 0 0; font-size:13.5px; opacity:.92; max-width:900px; }
+/* ---------- CHAT BUBBLES ĐỎ NHẠT - TRẮNG ---------- */
+div[data-testid="stChatMessage"] {
+  background: transparent !important;
+  border: none !important;
+  padding: 8px 0 !important;
+}
+.user-bubble-wrap {
+  display: flex; justify-content: flex-end; margin: 6px 0 6px 0;
+}
+.user-bubble {
+  background: #FFF1F2;
+  border: 1px solid #FECDD3;
+  color: var(--ink);
+  padding: 12px 18px;
+  border-radius: 20px 20px 4px 20px;
+  max-width: 80%;
+  font-size: 14.5px;
+  line-height: 1.55;
+  box-shadow: 0 1px 2px rgba(185, 28, 28, 0.05);
+}
+.ai-meta-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 10px 0 8px 0;
+}
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11.5px; font-weight: 600;
+  padding: 3px 10px; border-radius: 999px;
+}
+.chip-pass { background: var(--green-bg); color: var(--green-ink); }
+.chip-warn { background: var(--red-bg); color: var(--red-ink); }
+.chip-info { background: #FFF5F5; color: #4B5563; border: 1px solid #F3D5D5; }
+.chip-red { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
 
-/* ---------- COMMON ---------- */
-.field-lbl { font-size:11.5px; font-weight:700; color:var(--red-dark); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
-.mini-stats { display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin:6px 0 14px 0; }
-.mini { border:1px solid #F3E3E3; border-left:4px solid var(--red); border-radius:10px; padding:10px 14px; background:#fff; }
-.mini .v { font-size:18px; font-weight:800; color:#111827; }
-.mini .l { font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
-.advisor-head { display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:10px 14px; margin:-4px -4px 12px -4px; border-radius:10px;
-  background:linear-gradient(90deg, #FFF5F5 0%, #FFFFFF 100%); border-left:4px solid var(--red); }
-.advisor-id { display:flex; align-items:center; gap:10px; }
-.advisor-avt { width:36px; height:36px; border-radius:50%; background:var(--red); color:#fff;
-  display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:800; }
-.advisor-title { font-size:14.5px; font-weight:800; color:var(--red-dark); line-height:1.2; }
-.advisor-sub { font-size:11.5px; color:var(--muted); }
-.irac-lbl { display:inline-block; font-size:11.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
-  padding:3px 10px; border-radius:6px; margin:6px 0 4px 0; }
-.irac-i { background:#FEE2E2; color:#991B1B; }
-.irac-r { background:#FEF3C7; color:#92400E; }
-.irac-a { background:#FFE4E6; color:#9F1239; }
-.irac-c { background:#DCFCE7; color:#166534; }
-.badge { display:inline-block; font-size:10.5px; font-weight:700; padding:3px 10px; border-radius:999px; letter-spacing:.02em; }
-.b-active { background:#DCFCE7; color:#166534; border:1px solid #86EFAC; }
-.b-expired { background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; }
-.b-grey { background:#F3F4F6; color:#4B5563; border:1px solid #E5E7EB; }
-.proc-card { border:1px solid #F3E3E3; border-top:4px solid var(--red); border-radius:12px; padding:16px 18px; background:#fff; }
-.proc-code { font-size:12px; font-weight:700; color:var(--red); letter-spacing:.03em; }
-.proc-name { font-size:15px; font-weight:700; color:#111827; margin:4px 0 10px 0; line-height:1.4; }
-.kv { display:grid; grid-template-columns: 120px 1fr; gap:6px 10px; font-size:13px; }
-.kv .k { color:var(--muted); font-weight:600; }
-.kv .v { color:#111827; }
+/* ---------- NGĂN KÉO CHI TIẾT PHÁP LÝ MƯỢT (0ms, KHÔNG GIẬT) ---------- */
+details.legal-drawer {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #FFFFFF;
+  margin: 6px 0;
+  overflow: hidden;
+}
+details.legal-drawer summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red-dark);
+  background: #FFF9F9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.15s ease;
+}
+details.legal-drawer summary::-webkit-details-marker { display: none; }
+details.legal-drawer summary::after {
+  content: "▾";
+  font-size: 13px;
+  color: var(--red);
+  transition: transform 0.18s ease;
+}
+details.legal-drawer[open] summary::after {
+  transform: rotate(180deg);
+}
+details.legal-drawer summary:hover {
+  background: #FFF1F2;
+}
+.drawer-body {
+  padding: 12px 16px;
+  border-top: 1px solid #F8E4E4;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.drawer-body code {
+  background: #FFF1F2;
+  color: #991B1B;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12.5px;
+}
+.judge-step {
+  border-radius: 8px;
+  padding: 9px 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.judge-step.pass { background: #F0FDF4; border: 1px solid #BBF7D0; color: #166534; }
+.judge-step.fail { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
+.judge-score { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
 
-.timeline { display:flex; gap:0; margin:4px 0 16px 0; }
-.tl-step { flex:1; text-align:center; position:relative; padding-top:28px; font-size:12px; color:#9CA3AF; font-weight:600; }
-.tl-step::before { content:""; position:absolute; top:10px; left:0; right:0; height:3px; background:#F3D3D3; }
-.tl-dot { position:absolute; top:3px; left:50%; transform:translateX(-50%); width:17px; height:17px;
-  border-radius:50%; background:#fff; border:3px solid #F3D3D3; z-index:1; }
-.tl-step.on { color:var(--red-dark); }
-.tl-step.on::before { background:var(--red); }
-.tl-step.on .tl-dot { border-color:var(--red); background:var(--red); }
+/* ---------- THẺ PHỤ TRỢ (IRAC / HỒ SƠ / CẢNH BÁO / TRA CỨU) ---------- */
+.irac-lbl {
+  display: inline-block; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 6px; margin: 8px 0 4px 0;
+}
+.irac-i { background: #FEE2E2; color: #991B1B; }
+.irac-r { background: #FEF3C7; color: #92400E; }
+.irac-a { background: #FFE4E6; color: #9F1239; }
+.irac-c { background: #DCFCE7; color: #166534; }
 
-.alert-card { border:1px solid #F3E3E3; border-left:6px solid var(--red); border-radius:12px;
-  padding:16px 18px; background:#fff; margin-bottom:6px; }
-.alert-card.med { border-left-color:#D97706; }
-.alert-card.low { border-left-color:#2563EB; }
-.sev { font-size:10.5px; font-weight:800; color:#fff; padding:3px 9px; border-radius:6px; letter-spacing:.03em; }
-.sev.high { background:#B91C1C; } .sev.med { background:#D97706; } .sev.low { background:#2563EB; }
-.alert-title { font-size:15px; font-weight:700; color:#111827; margin:8px 0 6px 0; }
-.alert-meta { font-size:12.5px; color:var(--muted); }
+.proc-card {
+  border: 1px solid var(--border); border-top: 3px solid var(--red); border-radius: 12px;
+  padding: 12px 15px; background: #FFFDFD; margin: 8px 0;
+}
+.proc-code { font-size: 11.5px; font-weight: 700; color: var(--red); }
+.proc-name { font-size: 14.5px; font-weight: 700; color: var(--ink); margin: 3px 0 8px 0; }
+.kv { display: grid; grid-template-columns: 110px 1fr; gap: 5px 10px; font-size: 13px; }
+.kv .k { color: var(--muted); font-weight: 600; }
+.kv .v { color: var(--ink); }
 
-.res-card { border:1px solid #F3E3E3; border-radius:12px; padding:16px 18px; background:#fff; margin-bottom:4px; }
-.res-top { display:flex; justify-content:space-between; align-items:center; gap:10px; }
-.res-title { font-size:15px; font-weight:700; color:#111827; }
-.res-body { font-size:13.5px; color:#374151; line-height:1.6; margin:8px 0; }
-.res-foot { font-size:12px; color:#9CA3AF; }
-mark { background:#FDE68A; color:#111827; padding:0 3px; border-radius:3px; }
+.alert-card {
+  border: 1px solid var(--border); border-left: 5px solid #B91C1C;
+  border-radius: 14px; padding: 14px 16px; background: #FFFFFF; margin-bottom: 8px;
+}
+.alert-card.med { border-left-color: #D97706; }
+.alert-card.low { border-left-color: #2563EB; }
+.sev {
+  font-size: 10.5px; font-weight: 700; color: #FFFFFF;
+  padding: 2px 8px; border-radius: 999px;
+}
+.sev.high { background: #B91C1C; }
+.sev.med { background: #D97706; }
+.sev.low { background: #2563EB; }
 
-.apcr-footer { margin:40px -2.4rem 0 -2.4rem; padding:22px 3.2rem; background:#7F1D1D; color:#FEE2E2;
-  display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px; font-size:12.5px; }
-.apcr-footer b { color:#fff; }
+.res-card {
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 14px 16px; background: #FFFFFF; margin-bottom: 6px;
+}
+.res-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+.res-body { font-size: 13.5px; color: #374151; line-height: 1.6; margin: 6px 0; }
+.res-foot { font-size: 12px; color: var(--muted); }
+mark { background: #FDE68A; color: #1F2937; padding: 0 3px; border-radius: 3px; }
 
-/* Nút Streamlit */
-div.stButton > button, div.stDownloadButton > button { border-radius:9px; font-weight:600; }
-div.stButton > button[kind="secondary"] { border-color:#F0C4C4; color:var(--red-dark); }
-div.stButton > button[kind="secondary"]:hover { border-color:var(--red); color:var(--red); background:var(--red-bg); }
-div[data-testid="stExpander"] details { border-color:#F3E3E3 !important; border-radius:10px !important; }
+/* Nút gợi ý chính dạng thẻ bo tròn đỏ nhạt */
+div.stButton > button[kind="secondary"] {
+  border-radius: 14px !important;
+  border: 1px solid var(--border) !important;
+  background: #FFFDFD !important;
+  color: var(--ink) !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+}
+div.stButton > button[kind="secondary"]:hover {
+  background: #FFF1F2 !important;
+  border-color: #FCA5A5 !important;
+  color: var(--red-ink) !important;
+}
+div[data-testid="stExpander"] details {
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  background: #FFFFFF;
+}
+div[data-testid="stChatInput"] {
+  max-width: 880px;
+  margin: 0 auto;
+}
+div[data-testid="stChatInput"] > div {
+  border-radius: 28px !important;
+  border: 1px solid #F1C4C4 !important;
+  background: #FFF5F5 !important;
+  padding: 4px 10px !important;
+}
+div[data-testid="stChatInput"] > div:focus-within {
+  border-color: var(--red) !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 2px 12px rgba(185, 28, 28, 0.12) !important;
+}
 </style>
 """
 )
 
 
 # ==============================================================================
-# HEADER + NAV
+# SIDEBAR — LỊCH SỬ TRÒ CHUYỆN & CÔNG CỤ (PHONG CÁCH GEMINI)
 # ==============================================================================
 
-nav_items = [
-    ("home", "🏠 Trang chủ"),
-    ("hanh_chinh", "Thủ tục hành chính"),
-    ("to_tung", "Tố tụng hình sự"),
-    ("canh_bao", "Cảnh báo hiểu nhầm"),
-    ("tra_cuu", "Tra cứu văn bản"),
-    ("huong_dan", "Hướng dẫn sử dụng"),
-]
-nav_html = "".join(
-    f'<a href="?page={key}" target="_self" class="{"active" if key == current_page else ""}">{label}</a>'
-    for key, label in nav_items
-)
-h(
-    f"""
-<div class="apcr-header">
-  <div class="apcr-brand">
-    <div class="apcr-logo">⚖</div>
-    <div>
-      <div class="apcr-name">APCR-RAG</div>
-      <div class="apcr-tag">Hệ thống tư vấn Thủ tục hành chính &amp; Tố tụng hình sự</div>
-    </div>
-  </div>
-  <div class="apcr-team">👥 Nhóm 9 · INT 3507 2</div>
-</div>
-<div class="apcr-nav">{nav_html}</div>
-"""
-)
-
-
-def page_banner(title: str, desc: str) -> None:
-    h(
-        f"""
-<div class="page-banner">
-  <div class="crumb"><a href="?page=home" target="_self">Trang chủ</a> &nbsp;›&nbsp; {esc(title)}</div>
-  <h2>{esc(title)}</h2>
-  <p>{esc(desc)}</p>
-</div>
-"""
-    )
-
-
-def footer() -> None:
+with st.sidebar:
     h(
         """
-<div class="apcr-footer">
-  <div><b>APCR-RAG</b> — Administrative &amp; Penal Criminal RAG<br/>Multi-Agent RAG trên LangGraph · Lược đồ hồ sơ 6 trường · Thẩm định chéo 2 lớp</div>
-  <div><b>Nhóm 9 — INT 3507 2</b><br/>Phạm Đức Trọng · Vũ Gia Anh Đức · Nguyễn Hữu Hải Long</div>
-  <div><b>GVHD</b><br/>TS. Nghiêm Nguyễn Việt Dũng</div>
-</div>
-<div style="font-size:11.5px; color:#9CA3AF; text-align:center; padding:10px 0 18px 0;">
-Thông tin chỉ mang tính tham khảo, không thay thế văn bản quy phạm pháp luật chính thức hoặc ý kiến của cơ quan có thẩm quyền.
+<div class="sb-brand">
+  <div class="sb-spark">✦</div>
+  <div>
+    <div class="sb-title">APCR-RAG</div>
+    <div class="sb-sub">Trợ lý Pháp lý AI · Nhóm 9</div>
+  </div>
 </div>
 """
     )
 
+    if st.button("＋  Cuộc trò chuyện mới", key="sb_new_chat", type="primary", width="stretch"):
+        _create_and_select_new_chat()
+        st.rerun()
+
+    h('<div class="sb-section">Gần đây</div>')
+    convs: List[Dict[str, Any]] = st.session_state["conversations"]
+    active_conv_id = st.session_state["active_conv_id"]
+    active_view = st.session_state["active_view"]
+
+    for conv in convs:
+        is_selected = active_view == "chat" and conv["id"] == active_conv_id
+        title_short = conv["title"]
+        if len(title_short) > 26:
+            title_short = title_short[:25].rstrip() + "…"
+        c_title, c_del = st.columns([5.2, 1.0], gap="small")
+        with c_title:
+            if st.button(
+                f"💬 {title_short}",
+                key=f"sb_conv_{conv['id']}",
+                type="primary" if is_selected else "secondary",
+                width="stretch",
+                help=f"{conv['title']} ({conv['created_at']})",
+            ):
+                st.session_state["active_conv_id"] = conv["id"]
+                st.session_state["active_view"] = "chat"
+                st.rerun()
+        with c_del:
+            if len(convs) > 1 or conv["turns"]:
+                if st.button("✕", key=f"sb_del_{conv['id']}", help="Xóa cuộc trò chuyện này", width="stretch"):
+                    _delete_conversation(conv["id"])
+                    st.rerun()
+
+    h('<div class="sb-section">Công cụ pháp lý</div>')
+    nav_tools = [
+        ("chat", "✦  Trò chuyện Pháp lý"),
+        ("tra_cuu", "🔍  Tra cứu Văn bản (BM25)"),
+        ("canh_bao", "🚨  Cảnh báo & Benchmark"),
+    ]
+    for view_key, label in nav_tools:
+        if st.button(
+            label,
+            key=f"sb_view_{view_key}",
+            type="primary" if active_view == view_key else "secondary",
+            width="stretch",
+        ):
+            st.session_state["active_view"] = view_key
+            st.rerun()
+
+    h('<div class="sb-section">Tùy chọn truy vấn</div>')
+    with st.expander("⚙️ Bộ lọc & Chế độ Demo", expanded=False):
+        domain_choice = st.selectbox(
+            "Phạm vi tư vấn",
+            ["Tự động nhận diện", "Thủ tục hành chính", "Tố tụng hình sự"],
+            key="sb_domain",
+        )
+        eff_date = st.date_input(
+            "Hiệu lực đến ngày",
+            value=datetime.date.today(),
+            format="DD/MM/YYYY",
+            key="sb_eff_date",
+        )
+        giai_doan_choice = "Tất cả"
+        if domain_choice == "Tố tụng hình sự":
+            giai_doan_choice = st.selectbox(
+                "Giai đoạn tố tụng",
+                ["Tất cả", "Khởi tố - Giải quyết nguồn tin về tội phạm", "Điều tra", "Truy tố", "Xét xử", "Thi hành án"],
+                key="sb_stage",
+            )
+        simulate_err = st.checkbox(
+            "Demo: cố ý sai bản nháp đầu",
+            key="sb_sim_err",
+            help="Giả lập bản nháp đầu sai lệ phí/thời hạn để xem Judge Agent 2 lớp bắt lỗi và tự sửa.",
+        )
+        if st.button("🗑️ Xóa toàn bộ lịch sử", key="sb_clear_all", width="stretch"):
+            fresh = [_new_conversation()]
+            st.session_state["conversations"] = fresh
+            st.session_state["active_conv_id"] = fresh[0]["id"]
+            _save_conversations(fresh)
+            st.rerun()
+
+    st.caption(f"Kho dữ liệu: **{len(ALL_PROCS)} thủ tục** · **{len(BENCHMARK)} câu Benchmark**")
+
 
 # ==============================================================================
-# THÀNH PHẦN DÙNG CHUNG CHO 2 PHÂN HỆ HỎI — ĐÁP
+# THÀNH PHẦN HIỂN THỊ ĐỒ THỊ & TIN NHẮN TRỢ LÝ
 # ==============================================================================
 
 def build_graph_dot(proc: Dict[str, Any]) -> str:
-    """Đồ thị 6 trường của thủ tục theo bảng màu đỏ — trắng (render bằng st.graphviz_chart)."""
+    """Đồ thị 6 trường của thủ tục theo tông đỏ nhạt — trắng (st.graphviz_chart)."""
     data = extract_procedure_graph_data(proc)
     palette = {
         "procedure": ("#B91C1C", "#FFFFFF"),
         "authority": ("#FEE2E2", "#7F1D1D"),
         "form": ("#FFFFFF", "#991B1B"),
         "deadline": ("#FEF3C7", "#92400E"),
-        "fee": ("#FEF3C7", "#92400E"),
+        "fee": ("#DCFCE7", "#166534"),
         "law": ("#7F1D1D", "#FFFFFF"),
     }
     lines = [
         "digraph G {",
-        "rankdir=LR; bgcolor=\"transparent\"; nodesep=0.25; ranksep=0.5;",
-        'node [shape=box, style="rounded,filled", fontname="Arial", fontsize=10, color="#E8B4B4", penwidth=1.2];',
-        'edge [fontname="Arial", fontsize=8, color="#D18C8C", fontcolor="#9CA3AF", arrowsize=0.6];',
+        'rankdir=LR; bgcolor="transparent"; nodesep=0.25; ranksep=0.5;',
+        'node [shape=box, style="rounded,filled", fontname="Arial", fontsize=10, color="#F3C4C4", penwidth=1.1];',
+        'edge [fontname="Arial", fontsize=8, color="#D18C8C", fontcolor="#6B7280", arrowsize=0.6];',
     ]
     for n in data["nodes"]:
-        fill, font = palette.get(n["group"], ("#FFFFFF", "#111827"))
+        fill, font = palette.get(n["group"], ("#FFFFFF", "#1F2937"))
         if n["group"] == "law" and "HẾT HIỆU LỰC" in n["label"]:
             fill, font = "#9CA3AF", "#FFFFFF"
         label = n["label"].replace("\\", "").replace('"', "'").replace("\n", "\\n")
@@ -336,601 +626,347 @@ def build_graph_dot(proc: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def render_procedure_panel(proc: Optional[Dict[str, Any]]) -> None:
-    if not proc:
-        st.info("Không có hồ sơ thủ tục phù hợp để hiển thị.")
-        return
-    info = proc["ma_va_ten_thu_tuc"]
-    laws = proc["can_cu_phap_ly"]
-    status = laws[0]["trang_thai_hieu_luc"]
-    badge = '<span class="badge b-active">● ĐANG HIỆU LỰC</span>' if status == "ĐANG HIỆU LỰC" else '<span class="badge b-expired">● HẾT HIỆU LỰC</span>'
-    h(
-        f"""
-<div class="proc-card">
-  <div style="display:flex; justify-content:space-between; align-items:center;">
-    <span class="proc-code">{esc(info["ma_thu_tuc"])} · {esc(info["linh_vuc"])}</span>{badge}
-  </div>
-  <div class="proc-name">{esc(info["ten_thu_tuc"])}</div>
-  <div class="kv">
-    <div class="k">Cơ quan</div><div class="v">{esc(", ".join(info["cap_tham_quyen"]))}</div>
-    <div class="k">Thời hạn</div><div class="v">Tối đa <b>{proc["thoi_han_giai_quyet"]["so_ngay_toi_da"]}</b> {esc(proc["thoi_han_giai_quyet"]["don_vi_tinh"])}</div>
-    <div class="k">Lệ phí</div><div class="v"><b>{fmt_fee(proc["le_phi"]["muc_phi_vnd"])}</b></div>
-    <div class="k">Căn cứ</div><div class="v">{esc("; ".join(f'{l["so_hieu_van_ban"]} — {l["dieu_khoan_diem"]}' for l in laws))}</div>
-  </div>
-</div>
-"""
-    )
-    st.markdown('<div class="field-lbl" style="margin-top:14px;">Sơ đồ hồ sơ 6 trường</div>', unsafe_allow_html=True)
-    with st.container(border=True):
-        st.graphviz_chart(build_graph_dot(proc))
-    with st.expander("📎 Thành phần hồ sơ & điều kiện bắt buộc"):
-        for g in proc["thanh_phan_ho_so"]["giay_to_bat_buoc"]:
-            st.markdown(f"- `{g['form_id']}` — {g['ten_giay_to']}")
-        st.warning(f"**Điều kiện bắt buộc:** {proc['thanh_phan_ho_so']['dieu_kien_bat_buoc']}")
-    with st.expander("📄 Dữ liệu JSON gốc"):
-        st.json(proc)
-
-
-def render_turn_assistant_message(state: Dict[str, Any], turn_idx: int) -> None:
-    """Hiển thị một lượt trả lời của Chatbot Chuyên viên Pháp lý APCR-RAG kèm chi tiết IRAC & Judge."""
+def render_assistant_turn(state: Dict[str, Any], turn_idx: int) -> None:
+    """Hiển thị 1 lượt trả lời của APCR-RAG với ngăn kéo chi tiết pháp lý mượt 0ms."""
     draft = state.get("irac_draft") or {}
     ver = state.get("verification_result") or {}
     history = state.get("revision_history") or []
-    proc_info = (state.get("primary_procedure") or {}).get("ma_va_ten_thu_tuc") or {}
-    ma_tt = proc_info.get("ma_thu_tuc", "")
-    conf_pct = int(float(draft.get("confidence_score", 0)) * 100)
-    lat_ms = state.get("total_latency_ms", 0)
+    proc = state.get("primary_procedure")
+    lat_ms = float(state.get("total_latency_ms", 0.0))
 
-    if draft.get("is_refusal"):
-        h(
-            f"""
-<div class="advisor-head">
-  <div class="advisor-id">
-    <div class="advisor-avt">⚖</div>
-    <div>
-      <div class="advisor-title">Chuyên viên Tư vấn Pháp lý APCR-RAG</div>
-      <div class="advisor-sub">Cơ chế Từ chối An toàn · {lat_ms:.0f} ms</div>
-    </div>
-  </div>
-  <span class="badge b-expired">TỪ CHỐI AN TOÀN</span>
-</div>
-"""
-        )
-        st.markdown(draft.get("direct_advice") or draft.get("application", ""))
-        st.caption(f"Lý do hệ thống ghi nhận: {draft.get('refusal_reason')}")
+    # 1. Hội thoại tự nhiên (Chào hỏi / Liệt kê dịch vụ / Tóm tắt nối tiếp)
+    if state.get("final_status") == "CONVERSATIONAL_REPLY" or state.get("is_conversational"):
+        st.markdown(draft.get("direct_advice") or draft.get("conclusion", ""))
+        if proc:
+            info = proc["ma_va_ten_thu_tuc"]
+            h(
+                f'<div class="ai-meta-row">'
+                f'<span class="chip chip-red">📎 Ngữ cảnh: {esc(info["ma_thu_tuc"])}</span>'
+                f'<span class="chip chip-info">⏱ {lat_ms:.0f} ms</span>'
+                f'</div>'
+            )
         return
 
-    ver_badge = (
-        '<span class="badge b-active">✓ ĐÃ KIỂM CHỨNG 2 LỚP</span>'
-        if ver.get("passed")
-        else '<span class="badge b-expired">⚠ CẦN ĐỐI CHIẾU THÊM</span>'
-    )
-    code_badge = f'<span class="badge b-grey" style="margin-right:6px;">{esc(ma_tt)}</span>' if ma_tt else ""
-    h(
-        f"""
-<div class="advisor-head">
-  <div class="advisor-id">
-    <div class="advisor-avt">⚖</div>
-    <div>
-      <div class="advisor-title">Chuyên viên Tư vấn Pháp lý APCR-RAG</div>
-      <div class="advisor-sub">Độ tin cậy {conf_pct}% · Kiểm chứng {len(history)} vòng · {lat_ms:.0f} ms</div>
-    </div>
-  </div>
-  <div>{code_badge}{ver_badge}</div>
-</div>
-"""
-    )
+    # 2. Từ chối an toàn
+    if draft.get("is_refusal"):
+        st.markdown(draft.get("direct_advice") or draft.get("application", ""))
+        h(
+            f'<div class="ai-meta-row">'
+            f'<span class="chip chip-warn">⛔ Từ chối an toàn</span>'
+            f'<span class="chip chip-info">⏱ {lat_ms:.0f} ms</span>'
+            f'</div>'
+        )
+        if draft.get("refusal_reason"):
+            st.caption(f"Lý do: {draft['refusal_reason']}")
+        return
+
+    # 3. Tư vấn pháp lý đầy đủ (RAG + IRAC + Judge 2 lớp)
     direct_txt = (draft.get("direct_advice") or "").strip() or (draft.get("conclusion") or "")
     st.markdown(direct_txt)
 
-    c_irac, c_judge = st.columns(2)
-    with c_irac:
-        with st.expander(f"📑 Phân tích pháp lý IRAC (#{turn_idx})", expanded=False):
-            st.markdown('<span class="irac-lbl irac-i">I · Vấn đề của bạn</span>', unsafe_allow_html=True)
-            st.markdown(draft.get("issue", ""))
-            st.markdown('<span class="irac-lbl irac-r">R · Căn cứ pháp luật</span>', unsafe_allow_html=True)
-            st.markdown(draft.get("rule", ""))
-            st.markdown('<span class="irac-lbl irac-a">A · Hướng dẫn chi tiết</span>', unsafe_allow_html=True)
-            st.markdown(draft.get("application", ""))
-            st.markdown('<span class="irac-lbl irac-c">C · Kết luận &amp; lưu ý</span>', unsafe_allow_html=True)
-            st.markdown(draft.get("conclusion", ""))
-    with c_judge:
-        with st.expander(f"🛡️ Nhật ký Judge 2 lớp ({state.get('final_status', '')})", expanded=len(history) > 1):
-            for step in history:
-                v = step["verification"]
-                tag = "Bản nháp đầu" if step["iteration"] == 1 else "Sau tự sửa lỗi"
-                l1_sc = int(float(v.get("layer1_score", 1.0)) * 100)
-                l2_sc = int(float(v.get("claim_coverage_score", 1.0)) * 100)
-                v_claims = v.get("verified_claims_count", 0)
-                t_claims = v.get("total_claims_count", 0)
-                if v["passed"]:
-                    st.success(f"**Vòng {step['iteration']} ({tag}) — ĐẠT.** {v['critique_feedback']}")
-                else:
-                    errs = "\n".join(f"- {e}" for e in v["layer1_errors"] + v["layer2_errors"])
-                    st.error(f"**Vòng {step['iteration']} ({tag}) — PHÁT HIỆN LỖI:**\n{errs}")
-                st.caption(
-                    f"Lớp 1 (Regex & Exact Match): **{l1_sc}%** · Lớp 2 (Claim Coverage): **{l2_sc}%** ({v_claims}/{t_claims} mệnh đề)"
-                )
-
-
-def render_qa_page(kind: str) -> None:
-    is_tthc = kind == "hanh_chinh"
-    turns_key = f"{kind}_chat_turns"
-    pending_key = f"{kind}_pending_q"
-
-    if is_tthc:
-        page_banner(
-            "Chatbot Tư vấn Thủ tục hành chính công (Đa lượt)",
-            "Hộ tịch · Cư trú & Căn cước · Giao thông & Phương tiện · Hộ chiếu · Đất đai & Xây dựng · Kinh doanh & Thuế · Lao động & Bảo hiểm. "
-            "Bạn có thể hỏi liên tiếp nhiều câu hỏi như đang trò chuyện với chuyên viên tư vấn.",
-        )
-        samples = [
-            "Tôi muốn xin cấp lại giấy phép lái xe",
-            "CMND 9 số cấp năm 2012 thì năm 2025 còn dùng được không?",
-            "Thủ tục làm hộ chiếu phổ thông gắn chíp online mất mấy ngày?",
-            "Sang tên Sổ đỏ nhà đất nộp hồ sơ ở đâu và bao lâu?",
-        ]
-        linh_vuc_opts = [
-            "Tất cả",
-            "Hộ tịch",
-            "Cư trú & Căn cước",
-            "Giao thông & Phương tiện",
-            "Xuất nhập cảnh & Hộ chiếu",
-            "Đất đai & Xây dựng",
-            "Kinh doanh & Thuế",
-            "Lao động & Bảo hiểm",
-        ]
-        phan_nhom = "Thủ tục hành chính"
-    else:
-        page_banner(
-            "Chatbot Tư vấn Thủ tục Tố tụng hình sự (Đa lượt)",
-            "Tố giác tội phạm · Biện pháp ngăn chặn · Xóa án tích & Lý lịch tư pháp · Kháng cáo & Thi hành án · Khiếu nại & Trợ giúp pháp lý. "
-            "Hỗ trợ hỏi đáp liên tục nhiều lượt theo từng tình huống.",
-        )
-        samples = [
-            "Chỉ một mình tôi đứng ra làm đơn bảo lĩnh cho em trai có được không?",
-            "Bị lừa đảo qua mạng, có người đòi 2 triệu lệ phí thụ lý đơn tố giác có đúng không?",
-            "Thời hạn kháng cáo bản án hình sự sơ thẩm là bao nhiêu ngày?",
-            "Người thuộc hộ nghèo bị buộc tội có được cử luật sư bào chữa miễn phí không?",
-        ]
-        linh_vuc_opts = [
-            "Tất cả",
-            "Tiếp nhận & Giải quyết tố giác, tin báo về tội phạm",
-            "Biện pháp ngăn chặn",
-            "Xóa án tích & Lý lịch tư pháp",
-            "Kháng cáo & Thi hành án hình sự",
-        ]
-        phan_nhom = "Tố tụng hình sự"
-
-    # Thanh bộ lọc cấu hình & câu hỏi mẫu
-    with st.container(border=True):
-        c1, c2, c3, c4 = st.columns([2.1, 1.2, 1.8, 1.1])
-        with c1:
-            linh_vuc = st.selectbox("Lĩnh vực lọc", linh_vuc_opts, key=f"{kind}_lv")
-        with c2:
-            eff_date = st.date_input("Hiệu lực đến ngày", value=datetime.date.today(), format="DD/MM/YYYY", key=f"{kind}_date")
-        with c3:
-            giai_doan = None
-            if not is_tthc:
-                giai_doan = st.selectbox(
-                    "Giai đoạn tố tụng",
-                    ["Tất cả", "Khởi tố - Giải quyết nguồn tin về tội phạm", "Điều tra", "Truy tố", "Xét xử", "Thi hành án"],
-                    key=f"{kind}_gd",
-                )
-            simulate = st.checkbox(
-                "Demo: cố ý sai ở bản nháp đầu",
-                key=f"{kind}_sim",
-                help="Giả lập bản nháp đầu sai lệ phí/thời hạn để xem Judge Agent bắt lỗi và tự sửa.",
-            )
-        with c4:
-            st.markdown("<div style='height:26px'></div>", unsafe_allow_html=True)
-            if st.button("🗑️ Hội thoại mới", key=f"{kind}_reset", width="stretch"):
-                st.session_state[turns_key] = []
-                st.rerun()
-
-        st.markdown('<div class="field-lbl" style="margin-top:4px;">💡 Bấm chọn nhanh chủ đề mẫu để hỏi Chatbot</div>', unsafe_allow_html=True)
-        s_cols = st.columns(len(samples))
-        for i, s in enumerate(samples):
-            if s_cols[i].button(s, key=f"{kind}_s{i}", width="stretch"):
-                st.session_state[pending_key] = s
-
-    if turns_key not in st.session_state:
-        st.session_state[turns_key] = []
-
-    # Khởi tạo câu hỏi mở đầu mặc định nếu phiên chat đang trống để màn hình có sẵn ví dụ
-    if not st.session_state[turns_key] and not st.session_state.get(pending_key):
-        init_state = run_legal_multi_agent_workflow(
-            query=samples[0],
-            phan_nhom_filter=phan_nhom,
-            linh_vuc_filter=linh_vuc,
-            giai_doan_filter=giai_doan,
-            effective_date=str(eff_date) if eff_date else None,
-            only_active=True,
-            simulate_initial_error=simulate,
-            chat_history=[],
-        )
-        st.session_state[turns_key].append({"query": samples[0], "state": init_state})
-
-    # Ô nhập câu hỏi mới của Chatbot (đặt trước để bắt sự kiện gửi ngay trong lượt rerun)
-    user_typed_q = st.chat_input(
-        "Nhập câu hỏi tiếp theo của bạn (VD: Cần chuẩn bị giấy tờ gì? Các bước làm thế nào? Lệ phí bao nhiêu? Hoặc hỏi thủ tục khác)...",
-        key=f"{kind}_chat_input",
+    info = (proc or {}).get("ma_va_ten_thu_tuc") or {}
+    ma_tt = info.get("ma_thu_tuc", "")
+    conf_pct = int(float(draft.get("confidence_score", 0)) * 100)
+    passed = bool(ver.get("passed", False))
+    ver_chip = (
+        '<span class="chip chip-pass">✓ Đã kiểm chứng 2 lớp</span>'
+        if passed
+        else '<span class="chip chip-warn">⚠ Cần đối chiếu thêm</span>'
     )
-    incoming_query: Optional[str] = user_typed_q or st.session_state.pop(pending_key, None)
+    fee_chip = ""
+    days_chip = ""
+    if proc:
+        fee_chip = f'<span class="chip chip-info">💰 {esc(fmt_fee(proc["le_phi"]["muc_phi_vnd"]))}</span>'
+        days_chip = f'<span class="chip chip-info">⏳ Tối đa {proc["thoi_han_giai_quyet"]["so_ngay_toi_da"]} ngày</span>'
 
-    if incoming_query and incoming_query.strip():
-        q_clean = incoming_query.strip()
-        history_context: List[Dict[str, str]] = []
-        for t in st.session_state[turns_key][-5:]:
+    code_chip = f'<span class="chip chip-red">{esc(ma_tt)}</span>' if ma_tt else ""
+    h(
+        f'<div class="ai-meta-row">'
+        f'{ver_chip}'
+        f'{code_chip}'
+        f'{fee_chip}{days_chip}'
+        f'<span class="chip chip-info">Độ tin cậy {conf_pct}% · {lat_ms:.0f} ms</span>'
+        f'</div>'
+    )
+
+    # Ngăn kéo 1: Phân tích IRAC & Hồ sơ bắt buộc (HTML <details> mở tức thì, mượt tuyệt đối)
+    proc_block = ""
+    if proc:
+        laws = proc["can_cu_phap_ly"]
+        status = laws[0]["trang_thai_hieu_luc"]
+        st_chip = (
+            '<span class="chip chip-pass">● ĐANG HIỆU LỰC</span>'
+            if status == "ĐANG HIỆU LỰC"
+            else '<span class="chip chip-warn">● HẾT HIỆU LỰC</span>'
+        )
+        forms_html = "".join(
+            f"<li><code>{esc(g['form_id'])}</code> — {esc(g['ten_giay_to'])}</li>"
+            for g in proc["thanh_phan_ho_so"]["giay_to_bat_buoc"]
+        )
+        laws_str = "; ".join(f"{l['so_hieu_van_ban']} — {l['dieu_khoan_diem']}" for l in laws)
+        proc_block = (
+            f'<div class="proc-card">'
+            f'<div style="display:flex; justify-content:space-between; align-items:center;">'
+            f'<span class="proc-code">{esc(info["ma_thu_tuc"])} · {esc(info["linh_vuc"])}</span>{st_chip}</div>'
+            f'<div class="proc-name">{esc(info["ten_thu_tuc"])}</div>'
+            f'<div class="kv">'
+            f'<div class="k">Cơ quan</div><div class="v">{esc(", ".join(info["cap_tham_quyen"]))}</div>'
+            f'<div class="k">Thời hạn</div><div class="v">Tối đa <b>{proc["thoi_han_giai_quyet"]["so_ngay_toi_da"]}</b> {esc(proc["thoi_han_giai_quyet"]["don_vi_tinh"])}</div>'
+            f'<div class="k">Lệ phí</div><div class="v"><b>{esc(fmt_fee(proc["le_phi"]["muc_phi_vnd"]))}</b></div>'
+            f'<div class="k">Căn cứ</div><div class="v">{esc(laws_str)}</div>'
+            f'</div>'
+            f'<div style="margin-top:8px; font-size:12.5px;"><b>Thành phần hồ sơ:</b><ul style="margin:4px 0 6px 18px; padding:0;">{forms_html}</ul></div>'
+            f'<div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:7px 10px; font-size:12.5px; color:#92400E;">'
+            f'<b>Điều kiện bắt buộc:</b> {esc(proc["thanh_phan_ho_so"]["dieu_kien_bat_buoc"])}</div>'
+            f'</div>'
+        )
+
+    h(
+        f"""
+<details class="legal-drawer">
+  <summary>📑 Phân tích pháp lý IRAC &amp; Hồ sơ bắt buộc</summary>
+  <div class="drawer-body">
+    <span class="irac-lbl irac-i">I · Vấn đề pháp lý</span>
+    <div style="margin-bottom:6px;">{_md_basic_to_html(draft.get("issue", ""))}</div>
+    <span class="irac-lbl irac-r">R · Căn cứ pháp luật</span>
+    <div style="margin-bottom:6px;">{_md_basic_to_html(draft.get("rule", ""))}</div>
+    <span class="irac-lbl irac-a">A · Hướng dẫn áp dụng</span>
+    <div style="margin-bottom:6px;">{_md_basic_to_html(draft.get("application", ""))}</div>
+    <span class="irac-lbl irac-c">C · Kết luận &amp; lưu ý</span>
+    <div style="margin-bottom:10px;">{_md_basic_to_html(draft.get("conclusion", ""))}</div>
+    {proc_block}
+  </div>
+</details>
+"""
+    )
+
+    # Ngăn kéo 2: Nhật ký thẩm định Judge 2 lớp (HTML <details>)
+    judge_steps_html: List[str] = []
+    for step in history:
+        v = step["verification"]
+        tag = "Bản nháp đầu" if step["iteration"] == 1 else f"Tự hiệu chỉnh lần #{step['iteration'] - 1}"
+        l1_sc = int(float(v.get("layer1_score", 1.0)) * 100)
+        l2_sc = int(float(v.get("claim_coverage_score", 1.0)) * 100)
+        v_claims = v.get("verified_claims_count", 0)
+        t_claims = v.get("total_claims_count", 0)
+        if v["passed"]:
+            msg_html = f"<b>Vòng {step['iteration']} ({esc(tag)}) — ĐẠT.</b> {esc(v['critique_feedback'])}"
+            cls_step = "pass"
+        else:
+            errs_li = "".join(f"<li>{esc(e)}</li>" for e in v["layer1_errors"] + v["layer2_errors"])
+            msg_html = f"<b>Vòng {step['iteration']} ({esc(tag)}) — PHÁT HIỆN LỖI:</b><ul style='margin:4px 0 0 18px;'>{errs_li}</ul>"
+            cls_step = "fail"
+        judge_steps_html.append(
+            f'<div class="judge-step {cls_step}">{msg_html}'
+            f'<div class="judge-score">Lớp 1 (Regex &amp; Exact Match): <b>{l1_sc}%</b> · '
+            f'Lớp 2 (Claim Coverage): <b>{l2_sc}%</b> ({v_claims}/{t_claims} mệnh đề)</div></div>'
+        )
+
+    open_attr = "open" if len(history) > 1 else ""
+    h(
+        f"""
+<details class="legal-drawer" {open_attr}>
+  <summary>🛡️ Nhật ký thẩm định Judge 2 lớp ({len(history)} vòng · {esc(state.get("final_status", ""))})</summary>
+  <div class="drawer-body">{"".join(judge_steps_html)}</div>
+</details>
+"""
+    )
+
+    if proc:
+        with st.expander("📊 Xem Sơ đồ cấu trúc 6 trường & JSON gốc", expanded=False):
+            st.graphviz_chart(build_graph_dot(proc))
+            st.download_button(
+                "⬇ Tải hồ sơ JSON chuẩn hóa",
+                data=json.dumps(proc, ensure_ascii=False, indent=2),
+                file_name=f"{info['ma_thu_tuc']}.json",
+                mime="application/json",
+                key=f"dl_turn_{turn_idx}_{info['ma_thu_tuc']}",
+            )
+
+
+# ==============================================================================
+# VIEW 1 — MÀN HÌNH CHAT CHÍNH (PHONG CÁCH GOOGLE GEMINI)
+# ==============================================================================
+
+def render_gemini_chat() -> None:
+    conv = _get_active_conversation()
+    phan_nhom = None if domain_choice == "Tự động nhận diện" else domain_choice
+    giai_doan = None if giai_doan_choice == "Tất cả" else giai_doan_choice
+
+    # Top bar tối giản
+    h(
+        f"""
+<div class="gem-topbar">
+  <div class="gem-model-pill">
+    <span>✦ APCR-RAG</span>
+    <span class="gem-model-sub">{esc(domain_choice)}</span>
+  </div>
+  <span class="gem-status-chip">✓ Multi-Agent · Judge 2 lớp</span>
+</div>
+"""
+    )
+
+    # Xử lý tin nhắn mới từ chat_input hoặc nút gợi ý
+    typed_prompt = st.chat_input(
+        "Hỏi APCR-RAG bất kỳ điều gì về thủ tục hành chính, tố tụng hình sự...",
+        key="gemini_chat_input",
+    )
+    incoming = typed_prompt or st.session_state.pop("pending_prompt", None)
+
+    if incoming and incoming.strip():
+        q_clean = incoming.strip()
+        history_ctx: List[Dict[str, str]] = []
+        for t in conv["turns"][-5:]:
             p_info = ((t["state"].get("primary_procedure") or {}).get("ma_va_ten_thu_tuc")) or {}
-            history_context.append(
+            d_prev = t["state"].get("irac_draft") or {}
+            history_ctx.append(
                 {
                     "query": t["query"],
                     "procedure_code": p_info.get("ma_thu_tuc", ""),
                     "procedure_name": p_info.get("ten_thu_tuc", ""),
+                    "direct_advice": d_prev.get("direct_advice", ""),
                 }
             )
 
-        final_state: Dict[str, Any] = {}
-        with st.status("Chuyên viên đang tra cứu hồ sơ, lập luận IRAC và thẩm định 2 lớp...", expanded=True) as status_box:
-            for event in stream_legal_multi_agent_workflow(
-                query=q_clean,
-                phan_nhom_filter=phan_nhom,
-                linh_vuc_filter=linh_vuc,
-                giai_doan_filter=giai_doan,
-                effective_date=str(eff_date) if eff_date else None,
-                only_active=True,
-                simulate_initial_error=simulate,
-                chat_history=history_context,
-            ):
-                if event["node"] != "__end__":
-                    st.write(f"• **{event['label']}** (`{event['latency_ms']} ms`): {event['summary']}")
-                final_state = event["state"]
-            status_box.update(
-                label=f"Đã trả lời ({final_state.get('final_status', 'DONE')} · {final_state.get('total_latency_ms', 0):.0f} ms)",
-                state="complete",
-                expanded=False,
-            )
-        st.session_state[turns_key].append({"query": q_clean, "state": final_state})
+        for idx, turn in enumerate(conv["turns"], start=1):
+            h(f'<div class="user-bubble-wrap"><div class="user-bubble">{esc(turn["query"])}</div></div>')
+            with st.chat_message("assistant", avatar="✨"):
+                render_assistant_turn(turn["state"], turn_idx=idx)
 
-    turns: List[Dict[str, Any]] = st.session_state[turns_key]
-    latest_state = turns[-1]["state"]
+        h(f'<div class="user-bubble-wrap"><div class="user-bubble">{esc(q_clean)}</div></div>')
+        with st.chat_message("assistant", avatar="✨"):
+            final_state: Dict[str, Any] = {}
+            with st.status("Đang suy luận và đối soát căn cứ pháp lý...", expanded=False) as status_box:
+                for event in stream_legal_multi_agent_workflow(
+                    query=q_clean,
+                    phan_nhom_filter=phan_nhom,
+                    giai_doan_filter=giai_doan,
+                    effective_date=str(eff_date) if eff_date else None,
+                    only_active=True,
+                    simulate_initial_error=simulate_err,
+                    chat_history=history_ctx,
+                ):
+                    if event["node"] != "__end__":
+                        st.write(f"• **{event['label']}** (`{event['latency_ms']} ms`): {event['summary']}")
+                    final_state = event["state"]
+                status_box.update(
+                    label=f"Hoàn tất ({final_state.get('total_latency_ms', 0):.0f} ms)",
+                    state="complete",
+                    expanded=False,
+                )
 
-    if not is_tthc:
-        stages = ["Khởi tố - Giải quyết nguồn tin về tội phạm", "Điều tra", "Truy tố", "Xét xử", "Thi hành án"]
-        short = ["Tiếp nhận nguồn tin", "Điều tra", "Truy tố", "Xét xử", "Thi hành án"]
-        proc = latest_state.get("primary_procedure") or {}
-        active = set((proc.get("ma_va_ten_thu_tuc") or {}).get("giai_doan_to_tung", []))
-        steps = "".join(
-            f'<div class="tl-step {"on" if st_full in active else ""}"><span class="tl-dot"></span>{lbl}</div>'
-            for st_full, lbl in zip(stages, short)
+            if not conv["turns"]:
+                conv["title"] = q_clean[:44] + ("…" if len(q_clean) > 44 else "")
+            conv["turns"].append({"query": q_clean, "state": final_state})
+            _save_conversations(st.session_state["conversations"])
+            render_assistant_turn(final_state, turn_idx=len(conv["turns"]))
+        st.rerun()
+
+    # Nếu cuộc trò chuyện đang rỗng -> hiển thị màn hình chào kiểu Gemini
+    if not conv["turns"]:
+        h(
+            """
+<div class="gem-welcome">
+  <div class="gem-hello">Xin chào!</div>
+  <div class="gem-subhello">Hôm nay tôi có thể giúp gì cho bạn?</div>
+  <div class="gem-desc">
+    Trò chuyện tự nhiên về <b>40 thủ tục Hành chính công &amp; Tố tụng Hình sự</b>.
+    Mọi câu trả lời pháp lý đều có trích dẫn điều luật và được <b>Judge Agent 2 lớp</b> đối soát lệ phí, thời hạn.
+  </div>
+</div>
+"""
         )
-        st.markdown('<div class="field-lbl" style="margin-top:8px;">Giai đoạn tố tụng của lượt tư vấn mới nhất</div>', unsafe_allow_html=True)
-        h(f'<div class="timeline">{steps}</div>')
-
-    left, right = st.columns([1.4, 1], gap="large")
-    with left:
-        st.markdown(
-            f'<div class="field-lbl">💬 Luồng hội thoại tư vấn ({len(turns)} câu hỏi trong phiên)</div>',
-            unsafe_allow_html=True,
-        )
-        for idx, turn in enumerate(turns, start=1):
-            with st.chat_message("user"):
-                st.markdown(f"**Bạn:** {turn['query']}")
-            with st.chat_message("assistant"):
-                render_turn_assistant_message(turn["state"], turn_idx=idx)
-
-        # Gợi ý câu hỏi nối tiếp nhanh ngay dưới câu trả lời mới nhất
-        st.markdown('<div class="field-lbl" style="margin-top:8px;">↪️ Hỏi tiếp nhanh về thủ tục đang tư vấn</div>', unsafe_allow_html=True)
-        followups = [
-            "📎 Cần chuẩn bị những giấy tờ gì?",
-            "📋 Trình tự các bước làm thế nào?",
-            "💰 Lệ phí cụ thể bao nhiêu?",
-            "📍 Nộp hồ sơ ở cơ quan nào?",
+        starters = [
+            ("📋", "Đâu là các dịch vụ mà bạn hỗ trợ?"),
+            ("🚗", "Tôi muốn xin cấp lại giấy phép lái xe"),
+            ("⚖️", "Chỉ một mình tôi đứng ra làm đơn bảo lĩnh cho em trai có được không?"),
+            ("🪪", "CMND 9 số cấp năm 2012 thì năm 2025 còn dùng được không?"),
         ]
-        f_cols = st.columns(4)
+        c1, c2 = st.columns(2, gap="small")
+        for idx, (icon, prompt_txt) in enumerate(starters):
+            col = c1 if idx % 2 == 0 else c2
+            with col:
+                if st.button(f"{icon}  {prompt_txt}", key=f"starter_{idx}", width="stretch"):
+                    st.session_state["pending_prompt"] = prompt_txt
+                    st.rerun()
+        return
+
+    # Hiển thị toàn bộ luồng hội thoại trực tiếp trên trang (cuộn chuột mượt toàn trang)
+    for idx, turn in enumerate(conv["turns"], start=1):
+        h(f'<div class="user-bubble-wrap"><div class="user-bubble">{esc(turn["query"])}</div></div>')
+        with st.chat_message("assistant", avatar="✨"):
+            render_assistant_turn(turn["state"], turn_idx=idx)
+
+    # Chip gợi ý hỏi tiếp nhanh nếu lượt cuối đang tư vấn 1 thủ tục cụ thể
+    latest_state = conv["turns"][-1]["state"]
+    if latest_state.get("primary_procedure"):
+        st.write("")
+        followups = [
+            "📎 Cần giấy tờ gì?",
+            "📋 Trình tự các bước?",
+            "💰 Lệ phí bao nhiêu?",
+            "✨ Tóm tắt ngắn gọn",
+        ]
+        f_cols = st.columns(4, gap="small")
         for j, fq in enumerate(followups):
-            if f_cols[j].button(fq, key=f"{kind}_fq_{j}", width="stretch"):
-                st.session_state[pending_key] = fq
+            if f_cols[j].button(fq, key=f"fq_{conv['id']}_{j}", width="stretch"):
+                st.session_state["pending_prompt"] = fq.split(" ", 1)[1]
                 st.rerun()
 
-    with right:
-        st.markdown('<div class="field-lbl">📑 Hồ sơ thủ tục &amp; Sơ đồ 6 trường đang tư vấn</div>', unsafe_allow_html=True)
-        render_procedure_panel(latest_state.get("primary_procedure"))
-
 
 # ==============================================================================
-# TRANG CHỦ
-# ==============================================================================
-
-def render_home() -> None:
-    h(
-        """
-<div class="apcr-hero">
-  <div>
-    <h1>TRA CỨU ĐÚNG — <span>TƯ VẤN RÕ</span> — KIỂM CHỨNG CHẶT</h1>
-    <p>Trợ lý pháp lý đa tác tử giúp người dân nắm chắc hồ sơ, thời hạn, lệ phí và cơ quan có thẩm quyền
-    khi thực hiện thủ tục hành chính công và các thủ tục trong tố tụng hình sự.</p>
-    <div class="hero-chips">
-      <span class="hero-chip">📑 Hồ sơ chuẩn hóa 6 trường</span>
-      <span class="hero-chip">🧭 Lập luận IRAC</span>
-      <span class="hero-chip">🛡️ Thẩm định chéo 2 lớp</span>
-      <span class="hero-chip">⏱️ Lọc hiệu lực theo thời gian</span>
-    </div>
-  </div>
-  <svg width="300" height="210" viewBox="0 0 300 210" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="gr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#DC2626"/><stop offset="1" stop-color="#7F1D1D"/></linearGradient>
-      <linearGradient id="gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FBBF24"/><stop offset="1" stop-color="#D97706"/></linearGradient>
-    </defs>
-    <circle cx="170" cy="105" r="98" fill="url(#gr)" opacity="0.10"/>
-    <rect x="200" y="40" width="78" height="100" rx="8" fill="#fff" stroke="#F3C4C4" stroke-width="2"/>
-    <rect x="212" y="56" width="54" height="6" rx="3" fill="#FCA5A5"/>
-    <rect x="212" y="70" width="44" height="5" rx="2.5" fill="#FDE2E2"/>
-    <rect x="212" y="82" width="50" height="5" rx="2.5" fill="#FDE2E2"/>
-    <rect x="212" y="94" width="38" height="5" rx="2.5" fill="#FDE2E2"/>
-    <circle cx="258" cy="122" r="11" fill="#16A34A"/><path d="M252 122 l4 4 l8 -8" stroke="#fff" stroke-width="2.6" fill="none"/>
-    <rect x="146" y="44" width="8" height="122" rx="4" fill="url(#gr)"/>
-    <rect x="96" y="58" width="108" height="7" rx="3.5" fill="url(#gr)"/>
-    <circle cx="150" cy="44" r="10" fill="url(#gd)"/>
-    <line x1="104" y1="65" x2="88" y2="118" stroke="#B91C1C" stroke-width="2"/>
-    <line x1="104" y1="65" x2="120" y2="118" stroke="#B91C1C" stroke-width="2"/>
-    <path d="M78 118 h52 a26 12 0 0 1 -52 0 z" fill="url(#gd)"/>
-    <line x1="196" y1="65" x2="180" y2="118" stroke="#B91C1C" stroke-width="2"/>
-    <line x1="196" y1="65" x2="212" y2="118" stroke="#B91C1C" stroke-width="2"/>
-    <path d="M170 118 h52 a26 12 0 0 1 -52 0 z" fill="url(#gd)" opacity="0.9"/>
-    <rect x="118" y="166" width="64" height="12" rx="6" fill="url(#gr)"/>
-    <rect x="104" y="180" width="92" height="12" rx="6" fill="#7F1D1D"/>
-  </svg>
-</div>
-"""
-    )
-
-    h('<div class="section-title">Chức năng chính</div>')
-    cards = [
-        ("hanh_chinh", "🏛️", "Hỏi — Đáp Thủ tục hành chính công",
-         "Khai sinh, kết hôn, khai tử, thường trú, tạm trú, căn cước, trợ cấp thất nghiệp, BHXH một lần, giấy phép lao động."),
-        ("to_tung", "⚖️", "Hỏi — Đáp Thủ tục tố tụng hình sự",
-         "Tố giác tội phạm, bảo lĩnh, đặt tiền bảo đảm, thăm gặp, kháng cáo, hoãn chấp hành án, xóa án tích, lý lịch tư pháp."),
-        ("canh_bao", "🚨", "Cảnh báo hiểu nhầm pháp lý",
-         "Những quan niệm sai phổ biến (Sổ hộ khẩu giấy, CMND 9 số, phí tố giác, bảo lĩnh 1 người…) kèm đính chính có căn cứ."),
-        ("tra_cuu", "🔍", "Tra cứu văn bản & thủ tục tức thì",
-         "Tìm Điều — Khoản theo từ khóa, lọc trạng thái hiệu lực theo ngày, không gọi mô hình ngôn ngữ, phản hồi tức thì."),
-    ]
-    h(
-        '<div class="fn-grid">'
-        + "".join(
-            f'<a class="fn-card" href="?page={k}" target="_self"><div class="fn-icon">{ic}</div>'
-            f'<div class="fn-body"><div class="fn-title">{t}</div><div class="fn-desc">{d}</div></div>'
-            f'<div class="fn-arrow">›</div></a>'
-            for k, ic, t, d in cards
-        )
-        + "</div>"
-    )
-
-    n_tthc = sum(1 for p in ALL_PROCS if p["ma_va_ten_thu_tuc"]["phan_nhom"] == "Thủ tục hành chính")
-    n_tths = len(ALL_PROCS) - n_tthc
-    n_laws = len({l["law_id"] for p in ALL_PROCS for l in p["can_cu_phap_ly"]})
-    h('<div class="section-title">Dữ liệu hệ thống</div>')
-    h(
-        f"""
-<div class="stat-strip">
-  <div class="stat-box"><div class="stat-num">{n_tthc}</div><div class="stat-lbl">Thủ tục hành chính chuẩn hóa</div></div>
-  <div class="stat-box"><div class="stat-num">{n_tths}</div><div class="stat-lbl">Thủ tục tố tụng hình sự</div></div>
-  <div class="stat-box"><div class="stat-num">{n_laws}</div><div class="stat-lbl">Căn cứ pháp lý định danh</div></div>
-  <div class="stat-box"><div class="stat-num">{len(BENCHMARK)}</div><div class="stat-lbl">Câu hỏi kiểm thử Benchmark</div></div>
-</div>
-"""
-    )
-
-    h('<div class="section-title">Quy trình xử lý một câu hỏi</div>')
-    h(
-        """
-<div class="flow">
-  <div class="flow-step"><b>① Retriever Agent</b><div>Chuẩn hóa thuật ngữ, định tuyến miền, lọc hiệu lực và tìm kiếm lai BM25 + Vector.</div></div>
-  <div class="flow-arrow">→</div>
-  <div class="flow-step"><b>② Consultant Agent</b><div>Lập luận IRAC từ hồ sơ 6 trường; từ chối trả lời khi thiếu căn cứ.</div></div>
-  <div class="flow-arrow">→</div>
-  <div class="flow-step"><b>③ Judge Agent</b><div>Lớp 1 đối soát mã, lệ phí, thời hạn bằng code; Lớp 2 kiểm điều kiện & thẩm quyền.</div></div>
-  <div class="flow-arrow">↺</div>
-  <div class="flow-step"><b>④ Tự sửa lỗi</b><div>Nếu chưa đạt, trả phản hồi cho Consultant sửa tối đa 2 vòng trước khi trả kết quả.</div></div>
-</div>
-"""
-    )
-
-
-# ==============================================================================
-# PHÂN HỆ 3 — CẢNH BÁO HIỂU NHẦM
-# ==============================================================================
-
-def render_canh_bao() -> None:
-    page_banner(
-        "Cảnh báo hiểu nhầm pháp lý",
-        "Danh mục quan niệm sai thường gặp khi người dân làm thủ tục, được Judge Agent đối chiếu với căn cứ pháp lý "
-        "và gắn mức độ rủi ro. Có thể chạy thử từng tình huống bẫy trên hệ thống đa tác tử.",
-    )
-    n_high = sum(1 for m in MISCONCEPTIONS if m["severity"] == "NGHIÊM TRỌNG")
-    total_flag = sum(m["flagged_count"] for m in MISCONCEPTIONS)
-    n_trap = sum(1 for b in BENCHMARK if b["difficulty"] == "Gài bẫy")
-    h(
-        f"""
-<div class="stat-strip">
-  <div class="stat-box"><div class="stat-num">{len(MISCONCEPTIONS)}</div><div class="stat-lbl">Cảnh báo đang theo dõi</div></div>
-  <div class="stat-box"><div class="stat-num">{n_high}</div><div class="stat-lbl">Mức độ nghiêm trọng</div></div>
-  <div class="stat-box"><div class="stat-num">{n_trap}</div><div class="stat-lbl">Câu hỏi bẫy trong Benchmark</div></div>
-  <div class="stat-box"><div class="stat-num">{total_flag:,}</div><div class="stat-lbl">Lượt gắn cờ ghi nhận</div></div>
-</div>
-""".replace(",", ".")
-    )
-
-    st.write("")
-    f1, f2, _ = st.columns([1.3, 1.3, 2])
-    sev_f = f1.selectbox("Mức độ", ["Tất cả", "NGHIÊM TRỌNG", "TRUNG BÌNH", "THẤP"])
-    grp_f = f2.selectbox("Phân nhóm", ["Tất cả", "Thủ tục hành chính", "Tố tụng hình sự"])
-
-    sev_cls = {"NGHIÊM TRỌNG": "high", "TRUNG BÌNH": "med", "THẤP": "low"}
-    for m in MISCONCEPTIONS:
-        if sev_f != "Tất cả" and m["severity"] != sev_f:
-            continue
-        if grp_f != "Tất cả" and m["phan_nhom"] != grp_f:
-            continue
-        cls = sev_cls[m["severity"]]
-        h(
-            f"""
-<div class="alert-card {cls}">
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-    <div><span class="sev {cls}">{m["severity"]}</span>
-    <span class="badge b-grey" style="margin-left:6px;">{esc(m["phan_nhom"])} · {esc(m["linh_vuc"])}</span></div>
-    <span class="alert-meta">🚩 {m["flagged_count"]} lượt · Mã <b>{esc(m["ma_thu_tuc"])}</b></span>
-  </div>
-  <div class="alert-title">{esc(m["title"])}</div>
-  <div class="alert-meta">Căn cứ: <i>{esc(m["law_reference"])}</i></div>
-</div>
-"""
-        )
-        with st.expander(f"Xem đính chính — {m['alert_id']}"):
-            a, b = st.columns(2)
-            a.error(f"**❌ Hiểu nhầm phổ biến**\n\n{m['misconception_statement']}")
-            b.success(f"**✅ Quy định đúng**\n\n{m['judge_correction']}")
-            st.caption(f"Tình huống kiểm thử: “{m['sample_test_query']}”")
-            if st.button("Chạy thử tình huống này trên hệ thống", key=f"trap_{m['alert_id']}"):
-                with st.spinner("Đang xử lý..."):
-                    res = run_legal_multi_agent_workflow(query=m["sample_test_query"], phan_nhom_filter=m["phan_nhom"])
-                irac_res = res.get("irac_draft") or {}
-                st.markdown(irac_res.get("direct_advice") or irac_res.get("conclusion", ""))
-        st.write("")
-
-    h('<div class="section-title">Đánh giá Định lượng: Benchmark 50 câu, Ablation Study &amp; Confusion Matrix</div>')
-    st.caption("25 câu hành chính + 25 câu tố tụng hình sự · 15 tra cứu đơn · 20 tình huống nhiều điều kiện · 15 câu gài bẫy.")
-    if st.button("▶ Chạy đánh giá Toàn diện (Benchmark + Ablation Study 4 cấu hình)", type="primary"):
-        with st.spinner("Đang chạy thực nghiệm đối chứng trên bộ 50 câu hỏi (4 cấu hình + Stress Test tự sửa lỗi)..."):
-            st.session_state["benchmark_full_report"] = run_full_benchmark_evaluation(include_ablation=True)
-
-    report = st.session_state.get("benchmark_full_report")
-    if report:
-        ma = report["multi_agent_apcr_rag"]
-        stress = report["self_revision_stress_test"]
-        cm_data = report["routing_confusion_matrix"]
-        r1, r2, r3, r4, r5 = st.columns(5)
-        r1.metric("Precision@1", f"{ma['precision_at_1_pct']:.1f}%")
-        r2.metric("Faithfulness (Phí+Hạn)", f"{ma['faithfulness_pct']:.1f}%")
-        r3.metric("Hallucination Rate", f"{ma['hallucination_rate_pct']:.1f}%")
-        r4.metric(
-            "Self-Revision thực tế",
-            f"{stress['self_revision_correction_rate_pct']:.1f}%",
-            delta=f"{stress['recovered_to_pass']}/{stress['total_stress_cases']} ca",
-        )
-        r5.metric("Routing Accuracy", f"{cm_data['accuracy_pct']:.1f}%")
-
-        st.markdown("##### 1. Bảng thí nghiệm cắt bỏ (Ablation Study — 4 cấu hình)")
-        ab_rows = report.get("ablation_study") or []
-        st.dataframe(
-            [
-                {
-                    "Cấu hình hệ thống": row["config"],
-                    "Precision@1 (%)": row["precision_at_1_pct"],
-                    "Recall@3 (%)": row["recall_at_3_pct"],
-                    "Faithfulness (%)": row["faithfulness_pct"],
-                    "Hallucination (%)": row["hallucination_rate_pct"],
-                    "Claim Coverage (%)": row["claim_coverage_pct"],
-                    "Độ trễ TB (ms)": row["avg_latency_ms"],
-                }
-                for row in ab_rows
-            ],
-            width="stretch",
-            hide_index=True,
-        )
-
-        col_cm, col_ragas = st.columns(2, gap="large")
-        with col_cm:
-            st.markdown("##### 2. Ma trận nhầm lẫn Định tuyến (Confusion Matrix 2×2)")
-            mx = cm_data["matrix"]
-            st.dataframe(
-                [
-                    {
-                        "Thực tế \\ Dự đoán": "Thủ tục hành chính",
-                        "Dự đoán: Hành chính": mx["actual_hanh_chinh_pred_hanh_chinh"],
-                        "Dự đoán: Tố tụng hình sự": mx["actual_hanh_chinh_pred_hinh_su"],
-                    },
-                    {
-                        "Thực tế \\ Dự đoán": "Tố tụng hình sự",
-                        "Dự đoán: Hành chính": mx["actual_hinh_su_pred_hanh_chinh"],
-                        "Dự đoán: Tố tụng hình sự": mx["actual_hinh_su_pred_hinh_su"],
-                    },
-                ],
-                width="stretch",
-                hide_index=True,
-            )
-            st.caption(
-                f"Accuracy: **{cm_data['accuracy_pct']}%** · Precision: **{cm_data['precision_hanh_chinh_pct']}%** · "
-                f"Recall: **{cm_data['recall_hanh_chinh_pct']}%** · F1-Score: **{cm_data['f1_hanh_chinh_pct']}%**"
-            )
-        with col_ragas:
-            st.markdown("##### 3. Trạng thái Đánh giá RAGAS & Xuất dữ liệu Báo cáo")
-            ragas_info = report.get("ragas_evaluation") or {}
-            if ragas_info.get("available"):
-                st.success(f"RAGAS Live Scores: {ragas_info.get('scores_pct')}")
-            else:
-                st.info(
-                    f"Chế độ đánh giá hiện tại: **Deterministic Proxy** (Claim Coverage: **{ma['claim_coverage_pct']}%**). "
-                    f"{ragas_info.get('note', '')}"
-                )
-            st.download_button(
-                "⬇ Tải toàn bộ kết quả Benchmark + Ablation (JSON)",
-                data=json.dumps(report, ensure_ascii=False, indent=2),
-                file_name="apcr_rag_benchmark_ablation_report.json",
-                mime="application/json",
-                width="stretch",
-            )
-    with st.expander("Danh sách 50 câu hỏi kiểm thử"):
-        st.dataframe(
-            [{"Mã": b["question_id"], "Câu hỏi": b["question"], "Nhóm": b["phan_nhom"], "Độ khó": b["difficulty"],
-              "Thủ tục chuẩn": b["expected_ma_thu_tuc"]} for b in BENCHMARK],
-            width="stretch", hide_index=True,
-        )
-
-
-# ==============================================================================
-# PHÂN HỆ 4 — TRA CỨU VĂN BẢN
+# VIEW 2 — TRA CỨU VĂN BẢN TỨC THÌ (ZERO-LLM BM25)
 # ==============================================================================
 
 def render_tra_cuu() -> None:
-    page_banner(
-        "Tra cứu văn bản & thủ tục tức thì",
-        "Tìm theo từ khóa, mã thủ tục hoặc số hiệu điều luật. Kết quả lấy trực tiếp từ chỉ mục toàn văn (BM25), "
-        "không gọi mô hình ngôn ngữ, có nhãn trạng thái hiệu lực.",
+    h(
+        """
+<div class="gem-topbar">
+  <div class="gem-model-pill">
+    <span>🔍 Tra cứu Văn bản &amp; Thủ tục</span>
+    <span class="gem-model-sub">Zero-LLM · Rank-BM25</span>
+  </div>
+  <span class="gem-status-chip">🪙 0 token · Phản hồi tức thì</span>
+</div>
+"""
     )
     with st.container(border=True):
         c1, c2, c3, c4 = st.columns([3, 1.4, 1.3, 1.2])
-        kw = c1.text_input("Từ khóa", value=st.session_state.get("tc_kw", "bảo lĩnh"),
-                           placeholder="VD: khai sinh, Điều 121, sổ hộ khẩu, kháng cáo...", key="tc_kw")
+        kw = c1.text_input(
+            "Từ khóa tìm kiếm",
+            value=st.session_state.get("tc_kw", "bảo lĩnh"),
+            placeholder="VD: khai sinh, Điều 121, sổ hộ khẩu, GPLX, hộ chiếu...",
+            key="tc_kw",
+        )
         pn = c2.selectbox("Phân nhóm", ["Tất cả", "Thủ tục hành chính", "Tố tụng hình sự"], key="tc_pn")
         dt = c3.date_input("Hiệu lực đến ngày", value=datetime.date.today(), format="DD/MM/YYYY", key="tc_dt")
         with c4:
             st.markdown("<div style='height:30px'></div>", unsafe_allow_html=True)
             only_active = st.checkbox("Chỉ còn hiệu lực", key="tc_active")
-        st.caption("Gợi ý: `khai sinh` · `Điều 121` · `sổ hộ khẩu` · `CMND` · `kháng cáo` · `lý lịch tư pháp` · `thất nghiệp`")
 
-    res = search_direct_bm25(query=kw, effective_date=str(dt), only_active=only_active,
-                             phan_nhom=pn, top_k=20, retriever=retriever)
-    h(
-        f"""
-<div style="display:flex; gap:18px; align-items:center; margin:14px 0 10px 0; font-size:13px; color:#6B7280;">
-  <span><b style="color:#B91C1C; font-size:16px;">{res["total_matched"]}</b> kết quả cho “{esc(kw)}”</span>
-  <span>⏱ {res["latency_ms"]} ms</span><span>🪙 0 token</span>
-</div>
-"""
+    res = search_direct_bm25(
+        query=kw,
+        effective_date=str(dt),
+        only_active=only_active,
+        phan_nhom=pn,
+        top_k=20,
+        retriever=retriever,
     )
+    st.caption(f"Tìm thấy **{res['total_matched']}** kết quả cho “{kw}” · ⏱ {res['latency_ms']} ms · 🪙 0 token")
     if not res["results"]:
-        st.info("Không tìm thấy kết quả. Hãy thử từ khóa khác hoặc bỏ bộ lọc hiệu lực.")
+        st.info("Không tìm thấy kết quả phù hợp. Hãy thử từ khóa khác hoặc bỏ lọc hiệu lực.")
     for it in res["results"]:
-        badge = '<span class="badge b-active">● ĐANG HIỆU LỰC</span>' if it["trang_thai_hieu_luc"] == "ĐANG HIỆU LỰC" else '<span class="badge b-expired">● HẾT HIỆU LỰC</span>'
+        badge = (
+            '<span class="chip chip-pass">● ĐANG HIỆU LỰC</span>'
+            if it["trang_thai_hieu_luc"] == "ĐANG HIỆU LỰC"
+            else '<span class="chip chip-warn">● HẾT HIỆU LỰC</span>'
+        )
         h(
             f"""
 <div class="res-card">
-  <div class="res-top">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
     <div class="res-title">[{esc(it["ma_thu_tuc"])}] {it["ten_thu_tuc_highlighted"]}</div>
-    <div style="white-space:nowrap;">{badge} <span class="badge b-grey">{esc(it["phan_nhom"]).upper()}</span></div>
+    <div style="white-space:nowrap;">{badge} <span class="chip chip-info">{esc(it["phan_nhom"])}</span></div>
   </div>
   <div class="res-body">📜 {it["can_cu_highlighted"]}<br/>⚠️ {it["dieu_kien_highlighted"]}</div>
   <div class="res-foot">Cơ quan: {esc(", ".join(it["cap_tham_quyen"]))} · Thời hạn tối đa {it["so_ngay_toi_da"]} ngày ·
@@ -949,64 +985,118 @@ def render_tra_cuu() -> None:
                 st.markdown(f"- `{g['form_id']}` — {g['ten_giay_to']}")
             if it.get("van_ban_thay_the"):
                 st.warning(f"Văn bản thay thế: {it['van_ban_thay_the']}")
-        b.download_button("⬇ Tải JSON", data=json.dumps(it["raw_procedure"], ensure_ascii=False, indent=2),
-                          file_name=f"{it['ma_thu_tuc']}.json", mime="application/json",
-                          key=f"dl_{it['ma_thu_tuc']}", width="stretch")
+        b.download_button(
+            "⬇ Tải JSON",
+            data=json.dumps(it["raw_procedure"], ensure_ascii=False, indent=2),
+            file_name=f"{it['ma_thu_tuc']}.json",
+            mime="application/json",
+            key=f"dl_{it['ma_thu_tuc']}",
+            width="stretch",
+        )
 
 
 # ==============================================================================
-# HƯỚNG DẪN SỬ DỤNG
+# VIEW 3 — CẢNH BÁO HIỂU NHẦM PHÁP LÝ & BENCHMARK 50 CÂU
 # ==============================================================================
 
-def render_huong_dan() -> None:
-    page_banner("Hướng dẫn sử dụng", "Các bước khai thác hệ thống APCR-RAG hiệu quả.")
-    c1, c2 = st.columns(2, gap="large")
-    with c1:
-        with st.container(border=True):
-            st.markdown("#### 1. Đặt câu hỏi")
-            st.markdown(
-                "- Chọn đúng phân hệ: **Thủ tục hành chính** hoặc **Tố tụng hình sự**.\n"
-                "- Mô tả tình huống cụ thể (ai, việc gì, đang ở giai đoạn nào).\n"
-                "- Có thể chọn lĩnh vực, giai đoạn tố tụng và ngày hiệu lực để thu hẹp kết quả."
+def render_canh_bao() -> None:
+    h(
+        """
+<div class="gem-topbar">
+  <div class="gem-model-pill">
+    <span>🚨 Cảnh báo Hiểu nhầm &amp; Benchmark</span>
+    <span class="gem-model-sub">Judge 2 lớp · 50 câu kiểm thử</span>
+  </div>
+</div>
+"""
+    )
+    tab_alerts, tab_bench = st.tabs(["🚨 10 Cảnh báo Hiểu nhầm Pháp lý", "📊 Đánh giá Benchmark & Ablation Study"])
+
+    with tab_alerts:
+        f1, f2 = st.columns(2)
+        sev_f = f1.selectbox("Mức độ rủi ro", ["Tất cả", "NGHIÊM TRỌNG", "TRUNG BÌNH", "THẤP"])
+        grp_f = f2.selectbox("Phân nhóm", ["Tất cả", "Thủ tục hành chính", "Tố tụng hình sự"])
+        sev_cls = {"NGHIÊM TRỌNG": "high", "TRUNG BÌNH": "med", "THẤP": "low"}
+
+        for m in MISCONCEPTIONS:
+            if sev_f != "Tất cả" and m["severity"] != sev_f:
+                continue
+            if grp_f != "Tất cả" and m["phan_nhom"] != grp_f:
+                continue
+            cls = sev_cls[m["severity"]]
+            h(
+                f"""
+<div class="alert-card {cls}">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+    <div><span class="sev {cls}">{m["severity"]}</span>
+    <span class="chip chip-info" style="margin-left:6px;">{esc(m["phan_nhom"])} · {esc(m["linh_vuc"])}</span></div>
+    <span style="font-size:12px; color:#5F6368;">🚩 {m["flagged_count"]} lượt · <b>{esc(m["ma_thu_tuc"])}</b></span>
+  </div>
+  <div style="font-size:15px; font-weight:700; margin:8px 0 4px 0;">{esc(m["title"])}</div>
+  <div style="font-size:12.5px; color:#5F6368;">Căn cứ: <i>{esc(m["law_reference"])}</i></div>
+</div>
+"""
             )
-        with st.container(border=True):
-            st.markdown("#### 2. Đọc kết quả IRAC")
-            st.markdown(
-                "- **I** — vấn đề pháp lý và thủ tục cần làm.\n"
-                "- **R** — căn cứ pháp luật kèm trạng thái hiệu lực.\n"
-                "- **A** — cơ quan, trình tự, hồ sơ, thời hạn, lệ phí.\n"
-                "- **C** — kết luận và cảnh báo tránh hiểu nhầm."
+            with st.expander(f"Xem đính chính & hỏi thử — {m['alert_id']}"):
+                a, b = st.columns(2)
+                a.error(f"**❌ Hiểu nhầm phổ biến**\n\n{m['misconception_statement']}")
+                b.success(f"**✅ Quy định đúng**\n\n{m['judge_correction']}")
+                if st.button("💬 Hỏi thử tình huống này trong Chatbot", key=f"try_trap_{m['alert_id']}"):
+                    _create_and_select_new_chat()
+                    st.session_state["pending_prompt"] = m["sample_test_query"]
+                    st.rerun()
+
+    with tab_bench:
+        st.caption("25 câu Hành chính + 25 câu Tố tụng hình sự · Đối chứng 4 cấu hình Ablation Study & Confusion Matrix.")
+        if st.button("▶ Chạy đánh giá Toàn diện (Benchmark 50 câu + Ablation Study)", type="primary"):
+            with st.spinner("Đang chạy thực nghiệm đối chứng trên bộ 50 câu hỏi..."):
+                st.session_state["benchmark_full_report"] = run_full_benchmark_evaluation(include_ablation=True)
+
+        report = st.session_state.get("benchmark_full_report")
+        if report:
+            ma = report["multi_agent_apcr_rag"]
+            stress = report["self_revision_stress_test"]
+            cm_data = report["routing_confusion_matrix"]
+            r1, r2, r3, r4, r5 = st.columns(5)
+            r1.metric("Precision@1", f"{ma['precision_at_1_pct']:.1f}%")
+            r2.metric("Faithfulness", f"{ma['faithfulness_pct']:.1f}%")
+            r3.metric("Hallucination", f"{ma['hallucination_rate_pct']:.1f}%")
+            r4.metric("Self-Revision", f"{stress['self_revision_correction_rate_pct']:.1f}%")
+            r5.metric("Routing Acc", f"{cm_data['accuracy_pct']:.1f}%")
+
+            st.markdown("##### Bảng thí nghiệm cắt bỏ (Ablation Study — 4 cấu hình)")
+            st.dataframe(
+                [
+                    {
+                        "Cấu hình": row["config"],
+                        "P@1 (%)": row["precision_at_1_pct"],
+                        "R@3 (%)": row["recall_at_3_pct"],
+                        "Faithfulness (%)": row["faithfulness_pct"],
+                        "Hallucination (%)": row["hallucination_rate_pct"],
+                        "Claim Cov (%)": row["claim_coverage_pct"],
+                        "Latency (ms)": row["avg_latency_ms"],
+                    }
+                    for row in (report.get("ablation_study") or [])
+                ],
+                width="stretch",
+                hide_index=True,
             )
-    with c2:
-        with st.container(border=True):
-            st.markdown("#### 3. Kiểm tra độ tin cậy")
-            st.markdown(
-                "- Mở **Nhật ký thẩm định 2 lớp** để xem Judge Agent đã đối soát những gì.\n"
-                "- Bật *Demo: cố ý sai ở bản nháp đầu* để quan sát vòng tự sửa lỗi.\n"
-                "- Câu hỏi ngoài phạm vi sẽ bị **từ chối an toàn** thay vì trả lời phỏng đoán."
-            )
-        with st.container(border=True):
-            st.markdown("#### 4. Tra cứu nhanh")
-            st.markdown(
-                "- Dùng **Tra cứu văn bản** khi chỉ cần tìm điều luật/thủ tục theo từ khóa.\n"
-                "- Nhãn đỏ **HẾT HIỆU LỰC** cho biết quy định cũ đã bị thay thế.\n"
-                "- Tải dữ liệu JSON gốc để đối chiếu."
+            st.download_button(
+                "⬇ Tải báo cáo Benchmark JSON",
+                data=json.dumps(report, ensure_ascii=False, indent=2),
+                file_name="apcr_rag_benchmark_ablation_report.json",
+                mime="application/json",
             )
 
 
 # ==============================================================================
-# ĐIỀU HƯỚNG
+# ĐIỀU HƯỚNG VIEW CHÍNH
 # ==============================================================================
 
-if current_page == "home":
-    render_home()
-elif current_page in ("hanh_chinh", "to_tung"):
-    render_qa_page(current_page)
-elif current_page == "canh_bao":
-    render_canh_bao()
-elif current_page == "tra_cuu":
+view = st.session_state.get("active_view", "chat")
+if view == "chat":
+    render_gemini_chat()
+elif view == "tra_cuu":
     render_tra_cuu()
-elif current_page == "huong_dan":
-    render_huong_dan()
-
-footer()
+elif view == "canh_bao":
+    render_canh_bao()

@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 from src.baseline import BaselineSingleAgentRAG
 from src.consultant import ConsultantAgent
 from src.core.config import BENCHMARK_DATA_PATH, has_valid_api_key
+from src.judge import JudgeAgent
 from src.retriever import get_retriever_agent, search_direct_bm25
 from src.workflow import LegalMultiAgentOrchestrator, run_legal_multi_agent_workflow
 
@@ -91,7 +92,10 @@ def evaluate_self_revision_rate(
     Chạy toàn bộ bộ câu hỏi với `simulate_initial_error=True` để kiểm chứng xem Judge Agent
     có bắt được 100% lỗi ảo giác bản nháp đầu và Consultant có sửa đạt PASS ở vòng kế tiếp hay không.
     """
-    orch = orchestrator or LegalMultiAgentOrchestrator()
+    orch = orchestrator or LegalMultiAgentOrchestrator(
+        consultant=ConsultantAgent(use_llm=False),
+        judge=JudgeAgent(use_llm=False),
+    )
     triggered = 0
     detected_at_round1 = 0
     recovered_to_pass = 0
@@ -181,9 +185,12 @@ def run_ablation_study(
     total = max(1, len(questions))
 
     retriever = get_retriever_agent()
-    consultant = ConsultantAgent()
-    baseline = BaselineSingleAgentRAG()
-    orchestrator = LegalMultiAgentOrchestrator(retriever=retriever, consultant=consultant)
+    consultant = ConsultantAgent(use_llm=False)
+    judge = JudgeAgent(use_llm=False)
+    baseline = BaselineSingleAgentRAG(use_llm=False)
+    orchestrator = LegalMultiAgentOrchestrator(
+        retriever=retriever, consultant=consultant, judge=judge
+    )
 
     # 1. Single-Agent Baseline
     b_p1 = b_fee = b_day = 0

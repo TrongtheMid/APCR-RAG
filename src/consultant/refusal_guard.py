@@ -35,8 +35,16 @@ _GENERIC_FILLER_TOKENS = {
     "nhiêu", "tiền", "lệ", "phí", "mấy", "ngày", "lâu", "cần", "những", "gì",
     "như", "thế", "nào", "có", "được", "không", "cho", "hỏi", "về", "việc",
     "đi", "nộp", "đăng", "ký", "cơ", "quan", "nhà", "nước", "quy", "định",
-    "luật", "hiện", "nay", "năm", "tháng", "tại", "và", "hoặc", "của", "cho",
+    "luật", "hiện", "nay", "năm", "tháng", "tại", "và", "hoặc", "của",
+    "dịch", "vụ", "hỗ", "trợ", "danh", "sách", "mục", "giúp", "biết", "hiểu",
+    "mình", "bạn", "anh", "chị", "em", "vậy", "thì", "sao", "nhỉ", "nhé",
+    "nếu", "tổng", "hợp", "các", "mà", "là", "này", "kia", "đây", "đó",
 }
+
+
+def _extract_distinctive_tokens(query: str) -> List[str]:
+    q_words = re.findall(r"[^\W\d_]{2,}", query.lower(), flags=re.UNICODE)
+    return [w for w in q_words if w not in _GENERIC_FILLER_TOKENS]
 
 
 def _has_topic_relevance(query: str, best_proc: Dict[str, Any]) -> bool:
@@ -44,10 +52,9 @@ def _has_topic_relevance(query: str, best_proc: Dict[str, Any]) -> bool:
     Kiểm tra xem các từ khóa đặc trưng trong câu hỏi có thực sự xuất hiện trong
     hồ sơ thủ tục đứng đầu hay không (ngăn chặn việc chỉ trùng từ chung 'xin cấp lại giấy phép').
     """
-    q_words = re.findall(r"[^\W\d_]{2,}", query.lower(), flags=re.UNICODE)
-    distinctive = [w for w in q_words if w not in _GENERIC_FILLER_TOKENS]
+    distinctive = _extract_distinctive_tokens(query)
     if not distinctive:
-        return True
+        return False
 
     info = best_proc["ma_va_ten_thu_tuc"]
     ho_so = best_proc["thanh_phan_ho_so"]
@@ -96,7 +103,10 @@ def check_deterministic_refusal(
     q_lower = query.lower()
 
     is_out_of_domain = any(k in q_lower for k in OUT_OF_DOMAIN_KEYWORDS)
-    is_topic_mismatch = (best_score < 0.45) and (not _has_topic_relevance(query, best_proc))
+    has_no_distinctive_terms = len(_extract_distinctive_tokens(query)) == 0
+    is_topic_mismatch = has_no_distinctive_terms or (
+        (best_score < 0.45) and (not _has_topic_relevance(query, best_proc))
+    )
 
     if best_score < min_score_threshold or is_out_of_domain or is_topic_mismatch:
         return IRACOutput(

@@ -25,6 +25,7 @@ def try_generate_with_gemini(
     hybrid_score: float,
     model_name: Optional[str] = None,
     api_key: Optional[str] = None,
+    chat_history: Optional[List[Dict[str, str]]] = None,
 ) -> Optional[IRACOutput]:
     """Gọi Google Gemini với Structured Output (IRACOutput) nếu có API Key hợp lệ."""
     llm = get_chat_llm(temperature=0.1, model_name=model_name, api_key=api_key)
@@ -38,6 +39,21 @@ def try_generate_with_gemini(
             if expired_alerts
             else "Không có"
         )
+        history_block = ""
+        if chat_history:
+            hist_lines = []
+            for idx, turn in enumerate(chat_history[-4:], start=1):
+                q_prev = (turn.get("query") or "").strip()
+                p_prev = (turn.get("procedure_name") or "").strip()
+                a_prev = (turn.get("direct_advice") or "").strip()
+                a_short = (a_prev[:260] + "...") if len(a_prev) > 260 else a_prev
+                hist_lines.append(f"- Lượt {idx}: Người dùng hỏi \"{q_prev}\"" + (f" [Thủ tục: {p_prev}]" if p_prev else ""))
+                if a_short:
+                    hist_lines.append(f"  Trợ lý trả lời: {a_short}")
+            history_block = "\n\nNGỮ CẢNH HỘI THOẠI GẦN ĐÂY:\n" + "\n".join(hist_lines)
+
+        form_ids = [f["form_id"] for f in primary_proc.get("thanh_phan_ho_so", {}).get("giay_to_bat_buoc", [])]
+        law_ids = [c["law_id"] for c in primary_proc.get("can_cu_phap_ly", [])]
         revision_prompt = (
             f"\n\n[YÊU CẦU TỰ SỬA LỖI (SELF-REVISION) TỪ JUDGE AGENT]:\n{critique_feedback}\n"
             "Hãy sửa lại toàn bộ số liệu lệ phí, thời hạn, mã trích dẫn và bổ sung đầy đủ điều kiện bắt buộc!"
@@ -47,8 +63,12 @@ def try_generate_with_gemini(
 
         user_message = (
             f"{IRAC_SYSTEM_PROMPT}\n\n"
-            f"CÂU HỎI CỦA NGƯỜI DÂN: {query}\n\n"
+            f"CÂU HỎI HIỆN TẠI CỦA NGƯỜI DÂN: {query}"
+            f"{history_block}\n\n"
             f"DỮ LIỆU HỒ SƠ THỦ TỤC 6 TRƯỜNG (JSON GỐC):\n{context_json}\n\n"
+            f"YÊU CẦU ĐỐI SOÁT CHÍNH XÁC TRONG VĂN BẢN & `citations`:\n"
+            f"- `law_ids` bắt buộc: {law_ids}\n"
+            f"- `form_ids` bắt buộc (ghi đủ trong `application` và `citations.form_ids`): {form_ids}\n\n"
             f"CẢNH BÁO QUY ĐỊNH CŨ HẾT HIỆU LỰC (NẾU CÓ):\n{expired_json}"
             f"{revision_prompt}"
         )

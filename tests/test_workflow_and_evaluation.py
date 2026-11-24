@@ -7,23 +7,31 @@ from __future__ import annotations
 
 import unittest
 
+from src.consultant import ConsultantAgent
 from src.evaluation import (
     compute_routing_confusion_matrix,
     evaluate_self_revision_rate,
     load_benchmark_questions,
     run_ablation_study,
 )
+from src.judge import JudgeAgent
 from src.workflow import (
+    LegalMultiAgentOrchestrator,
     contextualize_followup_query,
-    run_legal_multi_agent_workflow,
-    stream_legal_multi_agent_workflow,
 )
 
 
 class TestWorkflowAndEvaluation(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.orch = LegalMultiAgentOrchestrator(
+            consultant=ConsultantAgent(use_llm=False),
+            judge=JudgeAgent(use_llm=False),
+        )
+
     def test_streaming_workflow_emits_ordered_agent_events(self) -> None:
         events = list(
-            stream_legal_multi_agent_workflow(
+            self.orch.stream(
                 query="Đăng ký kết hôn với người nước ngoài nộp ở đâu?",
                 phan_nhom_filter="Thủ tục hành chính",
             )
@@ -40,7 +48,7 @@ class TestWorkflowAndEvaluation(unittest.TestCase):
         self.assertGreaterEqual(len(final_state["workflow_trace"]), 3)
 
     def test_self_revision_loop_recovers_from_simulated_error(self) -> None:
-        state = run_legal_multi_agent_workflow(
+        state = self.orch.invoke(
             query="Chỉ một mình tôi đứng ra làm đơn bảo lĩnh cho em trai có được không?",
             phan_nhom_filter="Tố tụng hình sự",
             simulate_initial_error=True,
@@ -61,7 +69,7 @@ class TestWorkflowAndEvaluation(unittest.TestCase):
         eff = contextualize_followup_query("Lệ phí bao nhiêu?", history)
         self.assertIn("bảo lĩnh", eff.lower())
 
-        state = run_legal_multi_agent_workflow(
+        state = self.orch.invoke(
             query="Lệ phí bao nhiêu?",
             phan_nhom_filter="Tố tụng hình sự",
             chat_history=history,
@@ -70,12 +78,12 @@ class TestWorkflowAndEvaluation(unittest.TestCase):
         self.assertEqual(state["irac_draft"]["citations"]["muc_phi_vnd"], 0)
 
     def test_deterministic_refusal_for_out_of_domain_query(self) -> None:
-        state = run_legal_multi_agent_workflow("Dự báo thời tiết hôm nay ở Hà Nội thế nào?")
+        state = self.orch.invoke("Dự báo thời tiết hôm nay ở Hà Nội thế nào?")
         self.assertEqual(state["final_status"], "REFUSED_SAFELY")
         self.assertTrue(state["irac_draft"]["is_refusal"])
 
     def test_conversational_direct_advice_tone_for_cmnd_and_situations(self) -> None:
-        res_cmnd = run_legal_multi_agent_workflow(
+        res_cmnd = self.orch.invoke(
             "CMND 9 số cấp năm 2012 thì năm 2025 còn dùng được không?",
             phan_nhom_filter="Thủ tục hành chính",
         )
@@ -85,7 +93,7 @@ class TestWorkflowAndEvaluation(unittest.TestCase):
         self.assertIn("01/01/2025", advice)
         self.assertEqual(res_cmnd["final_status"], "VERIFIED_PASS")
 
-        res_bail = run_legal_multi_agent_workflow(
+        res_bail = self.orch.invoke(
             "Chỉ một mình tôi đứng ra làm đơn bảo lĩnh cho em trai có được không?",
             phan_nhom_filter="Tố tụng hình sự",
         )
@@ -94,7 +102,7 @@ class TestWorkflowAndEvaluation(unittest.TestCase):
         self.assertEqual(res_bail["final_status"], "VERIFIED_PASS")
 
     def test_expanded_dvc_procedures_and_multiturn_topic_switch(self) -> None:
-        r_gplx = run_legal_multi_agent_workflow(
+        r_gplx = self.orch.invoke(
             "tôi muốn xin cấp lại giấy phép lái xe",
             phan_nhom_filter="Thủ tục hành chính",
         )
@@ -111,7 +119,7 @@ class TestWorkflowAndEvaluation(unittest.TestCase):
             }
         ]
         # Hỏi nối tiếp về giấy tờ -> giữ nguyên TTHC-GT-01
-        r_docs = run_legal_multi_agent_workflow(
+        r_docs = self.orch.invoke(
             "Cần chuẩn bị những giấy tờ gì?",
             phan_nhom_filter="Thủ tục hành chính",
             chat_history=history,
@@ -120,7 +128,7 @@ class TestWorkflowAndEvaluation(unittest.TestCase):
         self.assertIn("DON-GPLX-01", r_docs["irac_draft"]["direct_advice"])
 
         # Đổi chủ đề sang làm hộ chiếu -> tự động chuyển sang TTHC-HC-01
-        r_hc = run_legal_multi_agent_workflow(
+        r_hc = self.orch.invoke(
             "Thế thủ tục làm hộ chiếu gắn chíp mất mấy ngày?",
             phan_nhom_filter="Thủ tục hành chính",
             chat_history=history,
@@ -128,7 +136,7 @@ class TestWorkflowAndEvaluation(unittest.TestCase):
         self.assertEqual(r_hc["primary_procedure"]["ma_va_ten_thu_tuc"]["ma_thu_tuc"], "TTHC-HC-01")
 
         # Câu hỏi ngoài danh mục 40 thủ tục -> Từ chối an toàn
-        r_visa = run_legal_multi_agent_workflow(
+        r_visa = self.orch.invoke(
             "Tôi muốn xin visa du lịch Mỹ",
             phan_nhom_filter="Thủ tục hành chính",
             chat_history=history,

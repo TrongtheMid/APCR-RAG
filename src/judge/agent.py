@@ -27,12 +27,13 @@ class JudgeAgent:
     AGENT 03 — JUDGE / CRITIC AGENT (Tác tử Thẩm định Chéo 2 Lớp nâng cấp).
     """
 
-    def __init__(self) -> None:
+    def __init__(self, use_llm: bool = True) -> None:
+        self.use_llm = use_llm
         self.api_key = GOOGLE_API_KEY
         self.model_name = GEMINI_MODEL
 
     def _has_valid_api_key(self) -> bool:
-        return has_valid_api_key(self.api_key)
+        return self.use_llm and has_valid_api_key(self.api_key)
 
     def verify_layer1_deterministic(
         self,
@@ -85,6 +86,7 @@ class JudgeAgent:
             ground_truth_proc=ground_truth_proc,
             model_name=self.model_name,
             api_key=self.api_key,
+            use_llm=self.use_llm,
         )
 
         l1_passed = bool(l1_detail["passed"])

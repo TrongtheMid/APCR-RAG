@@ -24,17 +24,22 @@ class ConsultantAgent:
     - Tự hiệu chỉnh (Self-Revision) khi nhận phản hồi từ Judge Agent.
     """
 
-    def __init__(self, min_score_threshold: Optional[float] = None) -> None:
+    def __init__(
+        self,
+        min_score_threshold: Optional[float] = None,
+        use_llm: bool = True,
+    ) -> None:
         self.min_score_threshold = (
             min_score_threshold
             if min_score_threshold is not None
             else MIN_RETRIEVAL_SCORE
         )
+        self.use_llm = use_llm
         self.api_key = GOOGLE_API_KEY
         self.model_name = GEMINI_MODEL
 
     def _has_valid_api_key(self) -> bool:
-        return has_valid_api_key(self.api_key)
+        return self.use_llm and has_valid_api_key(self.api_key)
 
     def check_deterministic_refusal(
         self, query: str, retrieved_items: List[Dict[str, Any]]
@@ -53,6 +58,7 @@ class ConsultantAgent:
         critique_feedback: Optional[str] = None,
         revision_count: int = 0,
         simulate_initial_error: bool = False,
+        chat_history: Optional[List[Dict[str, str]]] = None,
     ) -> IRACOutput:
         refusal = self.check_deterministic_refusal(query, retrieved_items)
         if refusal is not None:
@@ -71,6 +77,7 @@ class ConsultantAgent:
                 hybrid_score=hybrid_score,
                 model_name=self.model_name,
                 api_key=self.api_key,
+                chat_history=chat_history,
             )
             if llm_output is not None:
                 return llm_output

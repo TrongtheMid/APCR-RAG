@@ -17,6 +17,7 @@ from src.judge import JudgeAgent
 from src.retriever import RetrieverAgent, get_retriever_agent
 from src.schemas import IRACOutput, JudgeVerificationResult
 from src.workflow.edges import route_after_consultant, route_after_judge
+from src.workflow.intent_router import build_conversational_reply, classify_chat_intent
 from src.workflow.state import LegalWorkflowState
 
 
@@ -137,6 +138,7 @@ class LegalMultiAgentOrchestrator:
             critique_feedback=state.get("critique_feedback"),
             revision_count=rev_count,
             simulate_initial_error=state.get("simulate_initial_error", False),
+            chat_history=state.get("chat_history"),
         )
         node_ms = round((time.perf_counter() - t0) * 1000, 2)
         trace = list(state.get("workflow_trace", []))
@@ -240,6 +242,62 @@ class LegalMultiAgentOrchestrator:
         return {
             "irac_draft": draft_dict,
             "final_status": "MAX_REVISIONS_WARNING",
+            "workflow_trace": trace,
+        }
+
+    def conversational_node(self, state: LegalWorkflowState) -> Dict[str, Any]:
+        """Node Hội thoại Tự nhiên: Xử lý chào hỏi, liệt kê dịch vụ hỗ trợ hoặc tóm tắt nối tiếp."""
+        t0 = time.perf_counter()
+        intent = state.get("intent", "greeting")
+        chat_history = state.get("chat_history") or []
+        reply = build_conversational_reply(
+            intent=intent,  # type: ignore[arg-type]
+            query=state["query"],
+            procedures=self.retriever.raw_procedures,
+            chat_history=chat_history,
+            phan_nhom_filter=state.get("phan_nhom_filter"),
+            use_llm=self.consultant.use_llm,
+        )
+        draft_obj = IRACOutput(
+            is_refusal=False,
+            refusal_reason=None,
+            direct_advice=reply,
+            issue="Hội thoại tự nhiên & Định hướng dịch vụ hỗ trợ APCR-RAG.",
+            rule="APCR-RAG Intent Router (Conversational Mode).",
+            application=reply,
+            conclusion=reply,
+            citations=None,
+            confidence_score=0.96,
+        )
+        primary_proc = None
+        if intent == "followup_freeform" and chat_history:
+            prev_code = chat_history[-1].get("procedure_code") or ""
+            primary_proc = self.retriever.procedures_by_id.get(prev_code)
+        graph_data = extract_procedure_graph_data(primary_proc) if primary_proc else None
+
+        node_ms = round((time.perf_counter() - t0) * 1000, 2)
+        trace = list(state.get("workflow_trace", []))
+        trace.append(
+            {
+                "node": "conversational",
+                "label": "Trợ lý Hội thoại (Intent Router)",
+                "latency_ms": node_ms,
+                "summary": f"Phân loại ý định `{intent}` · Phản hồi tự nhiên trực tiếp.",
+            }
+        )
+        return {
+            "irac_draft": draft_obj.model_dump(),
+            "primary_procedure": primary_proc,
+            "graph_data": graph_data,
+            "verification_result": {
+                "passed": True,
+                "layer1_passed": True,
+                "layer1_errors": [],
+                "layer2_passed": True,
+                "layer2_errors": [],
+                "critique_feedback": "Lượt hội thoại tự nhiên / tra cứu phạm vi dịch vụ (không áp dụng khung IRAC đơn thủ tục).",
+            },
+            "final_status": "CONVERSATIONAL_REPLY",
             "workflow_trace": trace,
         }
 
@@ -348,7 +406,21 @@ class LegalMultiAgentOrchestrator:
             )
         )
 
-        if self.compiled_graph is not None:
+        routing_preview = self.retriever.rewrite_query_and_route(
+            query, preferred_domain=phan_nhom_filter
+        )
+        intent = classify_chat_intent(
+            query=query,
+            chat_history=chat_history,
+            matched_expansions=routing_preview.get("matched_expansions"),
+        )
+        state["intent"] = intent
+        state["is_conversational"] = intent != "legal_qa"
+
+        if intent != "legal_qa":
+            state.update(self.conversational_node(state))  # type: ignore[arg-type]
+            yield self._make_stream_event("conversational", state)
+        elif self.compiled_graph is not None:
             for chunk in self.compiled_graph.stream(state):
                 for node_name, update in chunk.items():
                     if isinstance(update, dict):

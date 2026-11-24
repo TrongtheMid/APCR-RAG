@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 
 from src.baseline.fixed_chunker import build_fixed_word_chunks
 from src.core.config import DEFAULT_DATA_PATH
-from src.core.llm_factory import get_chat_llm
+from src.core.llm_factory import extract_response_text, get_chat_llm
 from src.retriever.vector_store import LightweightLegalEmbeddingFunction
 
 
@@ -25,9 +25,11 @@ class BaselineSingleAgentRAG:
         self,
         data_path: Optional[Path | str] = None,
         chunk_word_limit: int = 120,
+        use_llm: bool = True,
     ) -> None:
         self.data_path = Path(data_path) if data_path else DEFAULT_DATA_PATH
         self.chunk_word_limit = chunk_word_limit
+        self.use_llm = use_llm
         self.chunks: List[Dict[str, Any]] = build_fixed_word_chunks(
             self.data_path, chunk_word_limit=self.chunk_word_limit
         )
@@ -64,7 +66,7 @@ class BaselineSingleAgentRAG:
         combined_context = "\n---\n".join(c["text"] for c in top_chunks)
 
         answer_text: Optional[str] = None
-        llm = get_chat_llm(temperature=0.4)
+        llm = get_chat_llm(temperature=0.4) if self.use_llm else None
         if llm is not None:
             try:
                 prompt = (
@@ -73,7 +75,7 @@ class BaselineSingleAgentRAG:
                     f"Câu hỏi: {query}"
                 )
                 resp = llm.invoke(prompt)
-                answer_text = str(resp.content)
+                answer_text = extract_response_text(resp)
             except Exception:
                 answer_text = None
 

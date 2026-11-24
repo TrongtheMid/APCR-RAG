@@ -19,7 +19,7 @@ DEFAULT_DATA_PATH = PROJECT_ROOT / "data" / "data_procedures.json"
 BENCHMARK_DATA_PATH = PROJECT_ROOT / "data" / "benchmark_50_questions.json"
 
 GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "").strip()
-GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
 CHROMA_PERSIST_DIR: str = os.getenv("CHROMA_PERSIST_DIR", "./data/chroma_db")
 CHROMA_COLLECTION_NAME: str = os.getenv("CHROMA_COLLECTION_NAME", "legal_procedures_bge_m3")

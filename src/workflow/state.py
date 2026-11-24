@@ -14,6 +14,8 @@ class LegalWorkflowState(TypedDict, total=False):
 
     query: str
     effective_query: str
+    intent: str
+    is_conversational: bool
     chat_history: List[Dict[str, str]]
     phan_nhom_filter: Optional[str]
     linh_vuc_filter: Optional[str]

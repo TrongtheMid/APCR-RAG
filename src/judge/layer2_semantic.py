@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
-from src.core.llm_factory import get_chat_llm
+from src.core.llm_factory import extract_response_text, get_chat_llm
 from src.schemas import IRACOutput
 
 
@@ -187,7 +187,7 @@ def try_llm_critic(
             f"BẢN NHÁP CONCLUSION: {draft.conclusion}"
         )
         resp = llm.invoke(prompt)
-        content = str(resp.content).strip()
+        content = extract_response_text(resp)
         if content.upper().startswith("PASS"):
             return []
         return [f"[Lớp 2 - LLM Semantic Critic] {content}"]
@@ -201,6 +201,7 @@ def verify_layer2_semantic_critic_detailed(
     ground_truth_proc: Dict[str, Any],
     model_name: Optional[str] = None,
     api_key: Optional[str] = None,
+    use_llm: bool = True,
 ) -> Dict[str, Any]:
     """
     LỚP 2 — THẨM ĐỊNH NGỮ NGHĨA TỔNG QUÁT CẤP MỆNH ĐỀ (CLAIM-LEVEL SEMANTIC CRITIC):
@@ -283,8 +284,8 @@ def verify_layer2_semantic_critic_detailed(
     else:
         checks_passed += 1
 
-    # 5. Gọi bổ sung LLM Semantic Critic nếu có GOOGLE_API_KEY
-    if not errors:
+    # 5. Gọi bổ sung LLM Semantic Critic nếu bật use_llm và có GOOGLE_API_KEY
+    if use_llm and not errors:
         llm_errors = try_llm_critic(
             query=query,
             draft=draft,
