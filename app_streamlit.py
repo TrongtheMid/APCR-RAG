@@ -9,6 +9,7 @@ Giao diện Trợ lý Pháp lý phong cách Google Gemini Chatbot:
 
 from __future__ import annotations
 
+import base64
 import datetime
 import html as html_lib
 import json
@@ -18,9 +19,24 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from src.consultant_agent import extract_procedure_graph_data
 from src.evaluation import run_full_benchmark_evaluation
+from src.ingestion import (
+    OfficialSourceDocument,
+    add_candidates_to_staging,
+    approve_and_merge_candidate,
+    clear_processed_candidates,
+    extract_procedures_from_document,
+    extract_text_from_pdf_bytes,
+    fetch_chinhphu_detail,
+    fetch_congbao_latest,
+    get_official_sources_status,
+    load_staging_queue,
+    reject_candidate,
+    search_chinhphu_documents,
+)
 from src.judge_agent import get_legal_misconceptions_catalog
 from src.langgraph_workflow import (
     run_legal_multi_agent_workflow,
@@ -194,8 +210,11 @@ h(
   --amber-ink: #92400E;
 }
 
-html {
-  scroll-behavior: smooth;
+section[data-testid="stMain"] {
+  scroll-behavior: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  overflow-anchor: auto;
 }
 html, body, [class*="css"], .stMarkdown, button, input, textarea {
   font-family: 'Be Vietnam Pro', 'Segoe UI', Roboto, sans-serif !important;
@@ -204,8 +223,7 @@ html, body, [class*="css"], .stMarkdown, button, input, textarea {
 
 #MainMenu, footer { display: none !important; }
 header[data-testid="stHeader"] {
-  background: rgba(255, 255, 255, 0.92) !important;
-  backdrop-filter: blur(8px);
+  background: #FFFFFF !important;
 }
 .stApp { background: var(--bg); }
 .block-container {
@@ -280,8 +298,7 @@ section[data-testid="stSidebar"] div.stButton > button[kind="primary"]:hover {
 .gem-topbar {
   position: sticky; top: 2.9rem; z-index: 20;
   display: flex; justify-content: space-between; align-items: center;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
+  background: #FFFFFF;
   border-bottom: 1px solid #F8E4E4;
   padding: 8px 4px 10px 4px;
   margin-bottom: 10px;
@@ -326,6 +343,7 @@ div[data-testid="stChatMessage"] {
 }
 .user-bubble-wrap {
   display: flex; justify-content: flex-end; margin: 6px 0 6px 0;
+  scroll-margin-top: 76px;
 }
 .user-bubble {
   background: #FFF1F2;
@@ -352,15 +370,16 @@ div[data-testid="stChatMessage"] {
 .chip-info { background: #FFF5F5; color: #4B5563; border: 1px solid #F3D5D5; }
 .chip-red { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
 
-/* ---------- NGĂN KÉO CHI TIẾT PHÁP LÝ MƯỢT (0ms, KHÔNG GIẬT) ---------- */
+/* ---------- NGĂN KÉO CHI TIẾT PHÁP LÝ MƯỢT (0ms, KHÔNG GIẬT, KHÔNG NHẢY CUỘN) ---------- */
 details.legal-drawer {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #FFFFFF;
   margin: 6px 0;
   overflow: hidden;
+  overflow-anchor: none;
 }
-details.legal-drawer summary {
+details.legal-drawer > summary {
   cursor: pointer;
   list-style: none;
   padding: 9px 14px;
@@ -371,26 +390,123 @@ details.legal-drawer summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  user-select: none;
   transition: background 0.15s ease;
 }
-details.legal-drawer summary::-webkit-details-marker { display: none; }
-details.legal-drawer summary::after {
+details.legal-drawer > summary::-webkit-details-marker { display: none; }
+details.legal-drawer > summary::after {
   content: "▾";
   font-size: 13px;
   color: var(--red);
   transition: transform 0.18s ease;
 }
-details.legal-drawer[open] summary::after {
+details.legal-drawer[open] > summary::after {
   transform: rotate(180deg);
 }
-details.legal-drawer summary:hover {
+details.legal-drawer > summary:hover {
   background: #FFF1F2;
+}
+@keyframes drawerReveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+details.legal-drawer[open] > .drawer-body {
+  animation: drawerReveal 0.16s cubic-bezier(0.2, 0, 0, 1);
 }
 .drawer-body {
   padding: 12px 16px;
   border-top: 1px solid #F8E4E4;
   font-size: 13.5px;
   line-height: 1.6;
+}
+/* Sơ đồ 6 trường HTML gọn nhẹ & khung JSON */
+.schema6-hub {
+  background: linear-gradient(135deg, #B91C1C 0%, #991B1B 100%);
+  color: #FFFFFF;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+.schema6-hub-code {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.9;
+  letter-spacing: 0.04em;
+}
+.schema6-hub-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.schema6-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.schema6-node {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  border-radius: 9px;
+  padding: 8px 11px;
+  background: #FFFDFD;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.schema6-node.auth { border-left-color: #991B1B; background: #FFF5F5; }
+.schema6-node.deadline { border-left-color: #D97706; background: #FFFBEB; }
+.schema6-node.fee { border-left-color: #16A34A; background: #F0FDF4; }
+.schema6-node.law { border-left-color: #7F1D1D; }
+.schema6-node-rel {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--red-dark);
+  margin-bottom: 3px;
+}
+.json-box {
+  background: #FFF9F9;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #374151;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 6px 0 10px 0;
+}
+.dl-json-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: #FFF1F2;
+  border: 1px solid #FCA5A5;
+  color: #991B1B !important;
+  text-decoration: none !important;
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+.dl-json-btn:hover {
+  background: #FEE2E2;
+}
+/* Ẩn khoảng trống container của iframe 0px dùng để cuộn 1 lần (không dùng display:none để script vẫn chạy) */
+div.stElementContainer:has(iframe[height="0"]),
+div.element-container:has(iframe[height="0"]) {
+  position: fixed !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  pointer-events: none !important;
 }
 .drawer-body code {
   background: #FFF1F2;
@@ -543,10 +659,14 @@ with st.sidebar:
                     st.rerun()
 
     h('<div class="sb-section">Công cụ pháp lý</div>')
+    staging_q_sb = load_staging_queue()
+    pending_cnt_sb = sum(1 for c in staging_q_sb.candidates if c.status == "PENDING")
+    dong_bo_lbl = f"📥  Đồng bộ Nguồn ({pending_cnt_sb})" if pending_cnt_sb else "📥  Đồng bộ Nguồn Chính thống"
     nav_tools = [
         ("chat", "✦  Trò chuyện Pháp lý"),
         ("tra_cuu", "🔍  Tra cứu Văn bản (BM25)"),
         ("canh_bao", "🚨  Cảnh báo & Benchmark"),
+        ("dong_bo", dong_bo_lbl),
     ]
     for view_key, label in nav_tools:
         if st.button(
@@ -596,6 +716,82 @@ with st.sidebar:
 # ==============================================================================
 # THÀNH PHẦN HIỂN THỊ ĐỒ THỊ & TIN NHẮN TRỢ LÝ
 # ==============================================================================
+
+def build_schema_6_html(proc: Dict[str, Any]) -> str:
+    """Hiển thị Sơ đồ cấu trúc 6 trường dạng lưới HTML nhẹ (0 WASM) + khung JSON & nút tải."""
+    data = extract_procedure_graph_data(proc)
+    info = proc.get("ma_va_ten_thu_tuc") or {}
+    ma_tt = info.get("ma_thu_tuc", "thu_tuc")
+
+    rel_by_target: Dict[str, str] = {}
+    for edge in data.get("edges", []):
+        rel_by_target[edge["target"]] = edge.get("label", "").replace("_", " ").upper()
+
+    group_meta = {
+        "authority": ("auth", "🏛️ CƠ QUAN THẨM QUYỀN"),
+        "deadline": ("deadline", "⏳ THỜI HẠN GIẢI QUYẾT"),
+        "fee": ("fee", "💰 LỆ PHÍ"),
+        "form": ("form", "📎 THÀNH PHẦN HỒ SƠ"),
+        "law": ("law", "📜 CĂN CỨ PHÁP LÝ"),
+    }
+
+    hub_html = ""
+    node_cards: List[str] = []
+    for n in data.get("nodes", []):
+        grp = n.get("group", "")
+        raw_lbl = str(n.get("label", "")).strip()
+        lbl_html = esc(raw_lbl).replace("\n", "<br/>")
+        if grp == "procedure":
+            hub_html = (
+                f'<div class="schema6-hub">'
+                f'<div class="schema6-hub-code">THỦ TỤC TRUNG TÂM · {esc(ma_tt)}</div>'
+                f'<div class="schema6-hub-title">{lbl_html}</div>'
+                f'</div>'
+            )
+            continue
+
+        css_cls, default_rel = group_meta.get(grp, ("", grp.upper()))
+        rel_lbl = rel_by_target.get(n.get("id", ""), default_rel) or default_rel
+        node_cards.append(
+            f'<div class="schema6-node {css_cls}">'
+            f'<div class="schema6-node-rel">{esc(rel_lbl)}</div>'
+            f'<div>{lbl_html}</div>'
+            f'</div>'
+        )
+
+    json_str = json.dumps(proc, ensure_ascii=False, indent=2)
+    b64_json = base64.b64encode(json_str.encode("utf-8")).decode("ascii")
+    return (
+        f'{hub_html}'
+        f'<div class="schema6-grid">{"".join(node_cards)}</div>'
+        f'<div style="font-size:12px; font-weight:600; color:var(--red-dark); margin-top:4px;">📄 Hồ sơ JSON chuẩn hóa</div>'
+        f'<pre class="json-box">{esc(json_str)}</pre>'
+        f'<a class="dl-json-btn" download="{esc(ma_tt)}.json" '
+        f'href="data:application/json;base64,{b64_json}">⬇ Tải hồ sơ JSON chuẩn hóa</a>'
+    )
+
+
+def _scroll_to_turn_once(turn_idx: int) -> None:
+    """Cuộn mượt đúng 1 lần tới câu hỏi vừa gửi mà không dùng cơ chế ghim đáy liên tục."""
+    components.html(
+        f"""
+<script>
+(function() {{
+  try {{
+    var doc = window.parent.document;
+    var el = doc.getElementById("turn-anchor-{int(turn_idx)}");
+    if (el) {{
+      setTimeout(function() {{
+        el.scrollIntoView({{ behavior: "smooth", block: "start" }});
+      }}, 40);
+    }}
+  }} catch (e) {{}}
+}})();
+</script>
+""",
+        height=0,
+    )
+
 
 def build_graph_dot(proc: Dict[str, Any]) -> str:
     """Đồ thị 6 trường của thủ tục theo tông đỏ nhạt — trắng (st.graphviz_chart)."""
@@ -773,15 +969,14 @@ def render_assistant_turn(state: Dict[str, Any], turn_idx: int) -> None:
     )
 
     if proc:
-        with st.expander("📊 Xem Sơ đồ cấu trúc 6 trường & JSON gốc", expanded=False):
-            st.graphviz_chart(build_graph_dot(proc))
-            st.download_button(
-                "⬇ Tải hồ sơ JSON chuẩn hóa",
-                data=json.dumps(proc, ensure_ascii=False, indent=2),
-                file_name=f"{info['ma_thu_tuc']}.json",
-                mime="application/json",
-                key=f"dl_turn_{turn_idx}_{info['ma_thu_tuc']}",
-            )
+        h(
+            f"""
+<details class="legal-drawer">
+  <summary>📊 Xem Sơ đồ cấu trúc 6 trường &amp; JSON gốc</summary>
+  <div class="drawer-body">{build_schema_6_html(proc)}</div>
+</details>
+"""
+        )
 
 
 # ==============================================================================
@@ -806,11 +1001,12 @@ def render_gemini_chat() -> None:
 """
     )
 
-    # Xử lý tin nhắn mới từ chat_input hoặc nút gợi ý
-    typed_prompt = st.chat_input(
-        "Hỏi APCR-RAG bất kỳ điều gì về thủ tục hành chính, tố tụng hình sự...",
-        key="gemini_chat_input",
-    )
+    # Đặt chat_input trong st.bottom để ghim đáy màn hình nhưng TẮT vòng lặp stAppScrollToBottomContainer 17ms
+    with st.bottom:
+        typed_prompt = st.chat_input(
+            "Hỏi APCR-RAG bất kỳ điều gì về thủ tục hành chính, tố tụng hình sự...",
+            key="gemini_chat_input",
+        )
     incoming = typed_prompt or st.session_state.pop("pending_prompt", None)
 
     if incoming and incoming.strip():
@@ -829,11 +1025,13 @@ def render_gemini_chat() -> None:
             )
 
         for idx, turn in enumerate(conv["turns"], start=1):
-            h(f'<div class="user-bubble-wrap"><div class="user-bubble">{esc(turn["query"])}</div></div>')
+            h(f'<div id="turn-anchor-{idx}" class="user-bubble-wrap"><div class="user-bubble">{esc(turn["query"])}</div></div>')
             with st.chat_message("assistant", avatar="✨"):
                 render_assistant_turn(turn["state"], turn_idx=idx)
 
-        h(f'<div class="user-bubble-wrap"><div class="user-bubble">{esc(q_clean)}</div></div>')
+        new_idx = len(conv["turns"]) + 1
+        h(f'<div id="turn-anchor-{new_idx}" class="user-bubble-wrap"><div class="user-bubble">{esc(q_clean)}</div></div>')
+        _scroll_to_turn_once(new_idx)
         with st.chat_message("assistant", avatar="✨"):
             final_state: Dict[str, Any] = {}
             with st.status("Đang suy luận và đối soát căn cứ pháp lý...", expanded=False) as status_box:
@@ -860,6 +1058,7 @@ def render_gemini_chat() -> None:
             conv["turns"].append({"query": q_clean, "state": final_state})
             _save_conversations(st.session_state["conversations"])
             render_assistant_turn(final_state, turn_idx=len(conv["turns"]))
+        st.session_state["scroll_to_turn"] = len(conv["turns"])
         st.rerun()
 
     # Nếu cuộc trò chuyện đang rỗng -> hiển thị màn hình chào kiểu Gemini
@@ -893,14 +1092,14 @@ def render_gemini_chat() -> None:
 
     # Hiển thị toàn bộ luồng hội thoại trực tiếp trên trang (cuộn chuột mượt toàn trang)
     for idx, turn in enumerate(conv["turns"], start=1):
-        h(f'<div class="user-bubble-wrap"><div class="user-bubble">{esc(turn["query"])}</div></div>')
+        h(f'<div id="turn-anchor-{idx}" class="user-bubble-wrap"><div class="user-bubble">{esc(turn["query"])}</div></div>')
         with st.chat_message("assistant", avatar="✨"):
             render_assistant_turn(turn["state"], turn_idx=idx)
 
     # Chip gợi ý hỏi tiếp nhanh nếu lượt cuối đang tư vấn 1 thủ tục cụ thể
     latest_state = conv["turns"][-1]["state"]
     if latest_state.get("primary_procedure"):
-        st.write("")
+        h('<div style="overflow-anchor: none; height: 8px;"></div>')
         followups = [
             "📎 Cần giấy tờ gì?",
             "📋 Trình tự các bước?",
@@ -912,6 +1111,10 @@ def render_gemini_chat() -> None:
             if f_cols[j].button(fq, key=f"fq_{conv['id']}_{j}", width="stretch"):
                 st.session_state["pending_prompt"] = fq.split(" ", 1)[1]
                 st.rerun()
+
+    target_scroll = st.session_state.pop("scroll_to_turn", None)
+    if target_scroll is not None:
+        _scroll_to_turn_once(int(target_scroll))
 
 
 # ==============================================================================
@@ -1090,6 +1293,316 @@ def render_canh_bao() -> None:
 
 
 # ==============================================================================
+# VIEW 4 — ĐỒNG BỘ NGUỒN DỮ LIỆU CHÍNH THỐNG (AUTO INGESTION & STAGING)
+# ==============================================================================
+
+def render_dong_bo() -> None:
+    staging_queue = load_staging_queue()
+    pending_items = [c for c in staging_queue.candidates if c.status == "PENDING"]
+    active_cnt = sum(
+        1 for p in ALL_PROCS if (p.get("can_cu_phap_ly") or [{}])[0].get("trang_thai_hieu_luc") == "ĐANG HIỆU LỰC"
+    )
+
+    h(
+        f"""
+<div class="gem-topbar">
+  <div class="gem-model-pill">
+    <span>📥 Đồng bộ Nguồn Chính thống</span>
+    <span class="gem-model-sub">vanban.chinhphu.vn · pypdf · Staging</span>
+  </div>
+  <span class="gem-status-chip">{len(ALL_PROCS)} thủ tục ({active_cnt} hiệu lực) · {len(pending_items)} chờ duyệt</span>
+</div>
+"""
+    )
+
+    # Trạng thái các kênh dữ liệu chính thống
+    sources = get_official_sources_status()
+    src_cols = st.columns(len(sources), gap="small")
+    for idx, src in enumerate(sources):
+        is_ready = src["mode"] == "auto_public"
+        badge_cls = "chip-pass" if is_ready else "chip-warn"
+        badge_txt = "● MỞ CÔNG KHAI" if is_ready else "● CẦN KHÓA / TƯỜNG CHỐNG BOT"
+        with src_cols[idx]:
+            h(
+                f"""
+<div class="res-card" style="padding:10px 12px; margin-bottom:8px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
+    <span class="chip {badge_cls}">{badge_txt}</span>
+  </div>
+  <div style="font-size:13px; font-weight:700; color:var(--red-dark);">{esc(src["name"])}</div>
+  <div style="font-size:12px; color:var(--muted); margin-top:2px;">{esc(src["status"])}</div>
+</div>
+"""
+            )
+
+    tab_portal, tab_upload, tab_staging = st.tabs(
+        [
+            "🌐 Thu thập từ Cổng Chính phủ",
+            "📄 Nạp từ URL / Tải tệp PDF",
+            f"✅ Hàng đợi Kiểm duyệt ({len(pending_items)} chờ duyệt)",
+        ]
+    )
+
+    with tab_portal:
+        with st.container(border=True):
+            c1, c2, c3, c4 = st.columns([2.6, 1.5, 0.9, 1.3])
+            sync_kw = c1.text_input(
+                "Từ khóa tìm văn bản / TTHC",
+                value=st.session_state.get("sync_kw", "thủ tục hành chính"),
+                placeholder="VD: hộ tịch, cư trú, giấy phép lái xe, tố tụng hình sự...",
+                key="sync_kw",
+            )
+            src_channel = c2.selectbox(
+                "Nguồn thu thập",
+                ["vanban.chinhphu.vn", "congbao.chinhphu.vn"],
+                key="sync_channel",
+            )
+            sync_limit = int(c3.number_input("Số văn bản", min_value=1, max_value=20, value=6, key="sync_limit"))
+            use_llm_extract = c4.checkbox(
+                "Dùng Gemini bóc tách",
+                value=True,
+                key="sync_use_llm",
+                help="Dùng Gemini Structured Output bóc tách PDF sang chuẩn 6 trường (tắt để test Regex ngoại tuyến).",
+            )
+
+            b1, b2 = st.columns([1.4, 2.6])
+            if b1.button("🔍 Quét văn bản chính thống", type="primary", width="stretch"):
+                with st.spinner(f"Đang kết nối {src_channel}..."):
+                    try:
+                        if src_channel == "congbao.chinhphu.vn":
+                            hits = fetch_congbao_latest(limit=sync_limit)
+                        else:
+                            hits = search_chinhphu_documents(keyword=sync_kw, limit=sync_limit)
+                        st.session_state["sync_hits"] = hits
+                    except Exception as exc:
+                        st.error(f"Không thể kết nối nguồn {src_channel}: {exc}")
+
+            hits: List[Dict[str, Any]] = st.session_state.get("sync_hits") or []
+            if hits and b2.button("⚡ Bóc tách nhanh 2 văn bản đầu vào Staging", width="stretch"):
+                added_total = 0
+                with st.spinner("Đang tải PDF ký số & chuẩn hóa sang 6 trường..."):
+                    for item in hits[:2]:
+                        doc = fetch_chinhphu_detail(item["url"], download_pdf_text=True)
+                        cands = extract_procedures_from_document(
+                            doc,
+                            existing_procedures=ALL_PROCS,
+                            use_llm=use_llm_extract,
+                        )
+                        res = add_candidates_to_staging(
+                            cands,
+                            source_summary=f"{src_channel} ({doc.so_hieu})",
+                        )
+                        added_total += res["added"]
+                st.success(f"Đã đưa {added_total} bản ghi vào Hàng đợi Kiểm duyệt! Chuyển sang tab Kiểm duyệt để xem.")
+                st.rerun()
+
+        if not hits:
+            st.info("Bấm **🔍 Quét văn bản chính thống** để tải danh sách Luật, Nghị định, Thông tư, Quyết định công bố TTHC mới nhất.")
+        else:
+            st.caption(f"Tìm thấy **{len(hits)}** văn bản chính thống.")
+            for i, it in enumerate(hits):
+                pdf_badge = (
+                    f'<span class="chip chip-pass">PDF gốc ({len(it.get("pdf_urls") or [])})</span>'
+                    if it.get("pdf_urls")
+                    else '<span class="chip chip-info">Trang chi tiết</span>'
+                )
+                h(
+                    f"""
+<div class="res-card">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+    <div class="res-title">[{esc(it["so_hieu"])}] {esc(it["trich_yeu"] or it["url"])}</div>
+    <div style="white-space:nowrap;">{pdf_badge} <span class="chip chip-info">{esc(it.get("ngay_ban_hanh") or "Mới")}</span></div>
+  </div>
+  <div class="res-foot">Nguồn: <a href="{esc(it["url"])}" target="_blank">{esc(it["url"])}</a></div>
+</div>
+"""
+                )
+                if st.button("⚙️ Tải toàn văn PDF & Đưa vào Staging", key=f"ingest_hit_{i}_{it['doc_id']}"):
+                    with st.spinner(f"Đang tải và chuẩn hóa {it['so_hieu']}..."):
+                        doc = fetch_chinhphu_detail(it["url"], download_pdf_text=True)
+                        cands = extract_procedures_from_document(
+                            doc,
+                            existing_procedures=ALL_PROCS,
+                            use_llm=use_llm_extract,
+                        )
+                        res = add_candidates_to_staging(
+                            cands,
+                            source_summary=f"Thu thập thủ công {doc.so_hieu}",
+                        )
+                    st.success(f"Đã thêm {res['added']} bản ghi chờ duyệt từ {doc.so_hieu} (bỏ qua trùng: {res['skipped']}).")
+                    st.rerun()
+
+    with tab_upload:
+        with st.container(border=True):
+            st.markdown("##### Cách 1: Dán trực tiếp URL văn bản Chính phủ / Công báo")
+            url_in = st.text_input(
+                "Đường dẫn chi tiết (`vanban.chinhphu.vn/?pageid=27160&docid=...` hoặc `congbao.chinhphu.vn/van-ban/...`)",
+                placeholder="https://vanban.chinhphu.vn/?pageid=27160&docid=219796",
+                key="sync_direct_url",
+            )
+            use_llm_direct = st.checkbox("Dùng Gemini chuẩn hóa 6 trường", value=True, key="sync_direct_llm")
+            if st.button("🌐 Tải & Bóc tách từ URL", type="primary", key="btn_ingest_url"):
+                if not url_in.strip():
+                    st.warning("Vui lòng nhập đường dẫn văn bản chính thống.")
+                else:
+                    with st.spinner("Đang tải metadata + PDF ký số và chuẩn hóa 6 trường..."):
+                        doc = fetch_chinhphu_detail(url_in.strip(), download_pdf_text=True)
+                        cands = extract_procedures_from_document(
+                            doc,
+                            existing_procedures=ALL_PROCS,
+                            use_llm=use_llm_direct,
+                        )
+                        res = add_candidates_to_staging(cands, source_summary=f"URL {doc.so_hieu}")
+                    st.success(f"Đã nạp {res['added']} bản ghi vào Staging từ {doc.so_hieu} ({len(doc.raw_text)} ký tự).")
+                    st.rerun()
+
+        with st.container(border=True):
+            st.markdown("##### Cách 2: Tải lên tệp PDF / TXT Quyết định công bố TTHC (kể cả xuất từ DVCQG)")
+            uploaded = st.file_uploader("Chọn tệp PDF hoặc TXT", type=["pdf", "txt"], key="sync_file_up")
+            u1, u2 = st.columns(2)
+            up_code = u1.text_input("Số ký hiệu văn bản", value="QD-CONGBO-TTHC", key="up_so_hieu")
+            up_org = u2.text_input("Cơ quan ban hành", value="Cơ quan có thẩm quyền", key="up_org")
+            if st.button("📤 Đọc tệp & Đưa vào Staging", key="btn_ingest_file"):
+                if uploaded is None:
+                    st.warning("Vui lòng chọn tệp PDF hoặc TXT.")
+                else:
+                    raw_bytes = uploaded.read()
+                    if uploaded.name.lower().endswith(".pdf"):
+                        txt = extract_text_from_pdf_bytes(raw_bytes)
+                    else:
+                        txt = raw_bytes.decode("utf-8", errors="ignore")
+                    if not txt.strip():
+                        st.error("Không đọc được text từ tệp (PDF có thể là bản scan ảnh chưa OCR).")
+                    else:
+                        doc = OfficialSourceDocument(
+                            source_name="pdf_upload",
+                            doc_id=uploaded.name,
+                            so_hieu=up_code.strip() or uploaded.name,
+                            trich_yeu=f"Tài liệu tải lên: {uploaded.name}",
+                            loai_van_ban="Quyết định / Văn bản tải lên",
+                            co_quan_ban_hanh=up_org.strip(),
+                            ngay_hieu_luc=str(datetime.date.today()),
+                            raw_text=txt,
+                        )
+                        cands = extract_procedures_from_document(
+                            doc,
+                            existing_procedures=ALL_PROCS,
+                            use_llm=use_llm_direct,
+                        )
+                        res = add_candidates_to_staging(cands, source_summary=f"Upload {uploaded.name}")
+                        st.success(f"Đã đọc {len(txt)} ký tự và thêm {res['added']} mục vào Staging.")
+                        st.rerun()
+
+    with tab_staging:
+        if staging_queue.last_sync_at:
+            st.caption(f"Đồng bộ gần nhất: **{staging_queue.last_sync_at}** · {staging_queue.last_source_summary}")
+
+        if not pending_items:
+            st.info("Hàng đợi kiểm duyệt đang trống. Hãy thu thập văn bản ở 2 tab bên cạnh để kiểm duyệt trước khi đưa vào kho chính.")
+        else:
+            for cand in pending_items:
+                rec = cand.record.model_dump()
+                info = rec["ma_va_ten_thu_tuc"]
+                laws = rec["can_cu_phap_ly"]
+                action_badge = {
+                    "ADD": ('<span class="chip chip-pass">THÊM MỚI</span>'),
+                    "UPDATE_EXISTING": ('<span class="chip chip-info">CẬP NHẬT</span>'),
+                    "UPDATE_EXPIRY": ('<span class="chip chip-warn">CẬP NHẬT HẾT HIỆU LỰC</span>'),
+                }.get(cand.action, '<span class="chip chip-info">STAGING</span>')
+
+                h(
+                    f"""
+<div class="proc-card" style="margin-bottom:10px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+    <span class="proc-code">{esc(info["ma_thu_tuc"])} · {esc(cand.source_so_hieu)}</span>
+    <div>{action_badge} <span class="chip chip-info">{esc(cand.extraction_mode)}</span></div>
+  </div>
+  <div class="proc-name">{esc(info["ten_thu_tuc"])}</div>
+  <div style="font-size:12.5px; color:var(--muted);">{esc(cand.confidence_note)}</div>
+</div>
+"""
+                )
+                with st.container(border=True):
+                    e1, e2, e3 = st.columns([1.4, 2.2, 1.4])
+                    new_code = e1.text_input("Mã thủ tục", value=info["ma_thu_tuc"], key=f"st_code_{cand.candidate_id}")
+                    new_name = e2.text_input("Tên thủ tục", value=info["ten_thu_tuc"], key=f"st_name_{cand.candidate_id}")
+                    new_group = e3.selectbox(
+                        "Phân nhóm",
+                        ["Thủ tục hành chính", "Tố tụng hình sự"],
+                        index=0 if info["phan_nhom"] == "Thủ tục hành chính" else 1,
+                        key=f"st_grp_{cand.candidate_id}",
+                    )
+                    e4, e5, e6 = st.columns([1.2, 1.2, 1.6])
+                    new_fee = int(
+                        e4.number_input(
+                            "Lệ phí (VNĐ)",
+                            min_value=0,
+                            step=1000,
+                            value=int(rec["le_phi"]["muc_phi_vnd"]),
+                            key=f"st_fee_{cand.candidate_id}",
+                        )
+                    )
+                    new_days = int(
+                        e5.number_input(
+                            "Thời hạn tối đa (ngày)",
+                            min_value=0,
+                            step=1,
+                            value=int(rec["thoi_han_giai_quyet"]["so_ngay_toi_da"]),
+                            key=f"st_days_{cand.candidate_id}",
+                        )
+                    )
+                    cur_status = laws[0]["trang_thai_hieu_luc"]
+                    new_status = e6.selectbox(
+                        "Trạng thái hiệu lực",
+                        ["ĐANG HIỆU LỰC", "HẾT HIỆU LỰC"],
+                        index=0 if cur_status == "ĐANG HIỆU LỰC" else 1,
+                        key=f"st_status_{cand.candidate_id}",
+                    )
+
+                    json_preview = esc(json.dumps(rec, ensure_ascii=False, indent=2))
+                    h(
+                        f"""
+<details class="legal-drawer">
+  <summary>🔍 Xem trước JSON 6 trường đầy đủ ({esc(info["ma_thu_tuc"])})</summary>
+  <div class="drawer-body"><pre class="json-box">{json_preview}</pre></div>
+</details>
+"""
+                    )
+
+                    act_l, act_r, _ = st.columns([1.6, 1.2, 2.0])
+                    if act_l.button("✅ Duyệt & Nạp vào kho chính", type="primary", key=f"app_{cand.candidate_id}", width="stretch"):
+                        rec["ma_va_ten_thu_tuc"]["ma_thu_tuc"] = new_code.strip() or info["ma_thu_tuc"]
+                        rec["ma_va_ten_thu_tuc"]["ten_thu_tuc"] = new_name.strip() or info["ten_thu_tuc"]
+                        rec["ma_va_ten_thu_tuc"]["phan_nhom"] = new_group
+                        rec["le_phi"]["muc_phi_vnd"] = new_fee
+                        rec["thoi_han_giai_quyet"]["so_ngay_toi_da"] = new_days
+                        rec["can_cu_phap_ly"][0]["trang_thai_hieu_luc"] = new_status
+                        try:
+                            res = approve_and_merge_candidate(
+                                cand.candidate_id,
+                                edited_record_dict=rec,
+                                reload_retriever=True,
+                            )
+                            load_retriever.clear()
+                            st.success(
+                                f"Đã gộp {res['merged_code']} vào data_procedures.json (Tổng: {res['total_procedures']} thủ tục) và làm mới BM25/ChromaDB!"
+                            )
+                            st.rerun()
+                        except Exception as exc:
+                            st.error(f"Lỗi kiểm định dữ liệu: {exc}")
+
+                    if act_r.button("🗑️ Loại bỏ", key=f"rej_{cand.candidate_id}", width="stretch"):
+                        reject_candidate(cand.candidate_id)
+                        st.rerun()
+
+        processed_cnt = sum(1 for c in staging_queue.candidates if c.status != "PENDING")
+        if processed_cnt > 0:
+            if st.button(f"🧹 Dọn {processed_cnt} mục đã duyệt/loại bỏ khỏi lịch sử Staging"):
+                clear_processed_candidates()
+                st.rerun()
+
+
+# ==============================================================================
 # ĐIỀU HƯỚNG VIEW CHÍNH
 # ==============================================================================
 
@@ -1100,3 +1613,5 @@ elif view == "tra_cuu":
     render_tra_cuu()
 elif view == "canh_bao":
     render_canh_bao()
+elif view == "dong_bo":
+    render_dong_bo()

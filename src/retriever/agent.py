@@ -89,6 +89,17 @@ class RetrieverAgent:
         # Chỉ mục phụ: thủ tục đã hết hiệu lực (phục vụ cảnh báo động)
         self.expired_procedures: List[Dict[str, Any]] = []
 
+        self.reload()
+
+    def reload(self) -> None:
+        """Tải lại kho thủ tục từ đĩa và dựng lại toàn bộ chỉ mục BM25 + ChromaDB."""
+        self.raw_procedures = []
+        self.validated_records = []
+        self.procedures_by_id = {}
+        self.corpus_texts = []
+        self.tokenized_corpus = []
+        self.expired_procedures = []
+
         self._load_and_validate_data()
         self.bm25 = BM25Okapi(self.tokenized_corpus)
         self.chroma_collection = init_chroma_collection(self.raw_procedures, self.corpus_texts)
@@ -316,4 +327,14 @@ def get_retriever_agent() -> RetrieverAgent:
     global _DEFAULT_RETRIEVER
     if _DEFAULT_RETRIEVER is None:
         _DEFAULT_RETRIEVER = RetrieverAgent()
+    return _DEFAULT_RETRIEVER
+
+
+def reset_retriever_agent() -> RetrieverAgent:
+    """Làm mới nóng RetrieverAgent dùng chung sau khi đồng bộ/nạp thủ tục mới."""
+    global _DEFAULT_RETRIEVER
+    if _DEFAULT_RETRIEVER is None:
+        _DEFAULT_RETRIEVER = RetrieverAgent()
+    else:
+        _DEFAULT_RETRIEVER.reload()
     return _DEFAULT_RETRIEVER

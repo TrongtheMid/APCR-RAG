@@ -4,7 +4,7 @@ Bao gồm Tokenizer, Query Rewriter, Metadata Filter, BM25 Engine, Vector Store 
 """
 
 from src.core.config import DEFAULT_DATA_PATH
-from src.retriever.agent import RetrieverAgent, get_retriever_agent
+from src.retriever.agent import RetrieverAgent, get_retriever_agent, reset_retriever_agent
 from src.retriever.bm25_engine import BM25Okapi, search_direct_bm25
 from src.retriever.metadata_filter import passes_metadata_filter
 from src.retriever.query_rewriter import COLLOQUIAL_TO_LEGAL_MAP, rewrite_query_and_route
@@ -46,4 +46,5 @@ __all__ = [
     # Agent
     "RetrieverAgent",
     "get_retriever_agent",
+    "reset_retriever_agent",
 ]
