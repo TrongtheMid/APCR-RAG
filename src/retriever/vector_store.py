@@ -2,7 +2,8 @@
 NHÁNH NGUYỄN HỮU HẢI LONG — Module Vector Store (ChromaDB & Embeddings):
 - Cung cấp hàm nhúng LightweightLegalEmbeddingFunction (384 chiều) tốc độ cao.
 - Hỗ trợ chuyển sang SentenceTransformer (BAAI/bge-m3) khi USE_LIGHTWEIGHT_EMBEDDING=false.
-- Khởi tạo và truy vấn ChromaDB Vector Store.
+- Khởi tạo và truy vấn ChromaDB PersistentClient (bền vững qua các lần khởi động).
+  Fallback sang EphemeralClient nếu chưa cài chromadb hoặc không có quyền ghi.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from typing import Any, Dict, List
 
 from src.core.config import (
     CHROMA_COLLECTION_NAME,
+    CHROMA_PERSIST_DIR,
     EMBEDDING_MODEL_NAME,
     USE_LIGHTWEIGHT_EMBEDDING,
 )
@@ -44,28 +46,55 @@ class LightweightLegalEmbeddingFunction:
         return embeddings
 
 
+def _get_embedding_function() -> Any:
+    """Lấy hàm nhúng phù hợp theo cấu hình (BGE-M3 → SentenceTransformer → Lightweight)."""
+    if not USE_LIGHTWEIGHT_EMBEDDING:
+        # Thử SentenceTransformer trực tiếp (BAAI/bge-m3 hoặc vietnamese-bi-encoder)
+        try:
+            from sentence_transformers import SentenceTransformer  # type: ignore
+
+            _model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+
+            class _STEmbFn:
+                def __call__(self, input: List[str]) -> List[List[float]]:
+                    return _model.encode(input, normalize_embeddings=True).tolist()  # type: ignore
+
+            return _STEmbFn()
+        except Exception:
+            pass
+
+        # Fallback sang ChromaDB utility wrapper
+        try:
+            from chromadb.utils.embedding_functions import (  # type: ignore
+                SentenceTransformerEmbeddingFunction,
+            )
+
+            return SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL_NAME)
+        except Exception:
+            pass
+
+    return LightweightLegalEmbeddingFunction(dim=384)
+
+
 def init_chroma_collection(
     raw_procedures: List[Dict[str, Any]],
     corpus_texts: List[str],
 ) -> Any:
-    """Khởi tạo ChromaDB Vector Store và nạp danh sách thủ tục."""
+    """
+    Khởi tạo ChromaDB Vector Store bền vững (PersistentClient → EphemeralClient).
+    Nạp toàn bộ thủ tục vào collection dùng upsert (idempotent).
+    """
     try:
         import chromadb
 
-        embedding_fn: Any = LightweightLegalEmbeddingFunction(dim=384)
-        if not USE_LIGHTWEIGHT_EMBEDDING:
-            try:
-                from chromadb.utils.embedding_functions import (
-                    SentenceTransformerEmbeddingFunction,
-                )
+        embedding_fn = _get_embedding_function()
 
-                embedding_fn = SentenceTransformerEmbeddingFunction(
-                    model_name=EMBEDDING_MODEL_NAME
-                )
-            except Exception:
-                embedding_fn = LightweightLegalEmbeddingFunction(dim=384)
+        # Ưu tiên PersistentClient (lưu disk) → fallback EphemeralClient (RAM)
+        try:
+            client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
+        except Exception:
+            client = chromadb.EphemeralClient()
 
-        client = chromadb.EphemeralClient()
         collection = client.get_or_create_collection(
             name=CHROMA_COLLECTION_NAME,
             embedding_function=embedding_fn,
@@ -101,7 +130,7 @@ def query_chroma_scores(
     query_text: str,
     n_results: int,
 ) -> Dict[str, float]:
-    """Truy vấn độ tương đồng Cosine từ ChromaDB."""
+    """Truy vấn độ tương đồng Cosine từ ChromaDB; trả về dict {ma_thu_tuc: score}."""
     vector_scores_map: Dict[str, float] = {}
     if collection is None:
         return vector_scores_map
