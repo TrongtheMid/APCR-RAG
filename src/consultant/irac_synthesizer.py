@@ -1,20 +1,161 @@
 """
 NHÁNH VŨ GIA ANH ĐỨC — Module IRAC Synthesizer:
-- Kết nối Gemini Structured Output (nếu có GOOGLE_API_KEY).
-- Tổng hợp lời tư vấn tự nhiên (`direct_advice`) như chuyên viên pháp lý trả lời trực tiếp,
-  kết hợp lập luận chuẩn IRAC (`issue`, `rule`, `application`, `conclusion`) từ Lược đồ 6 trường JSON
-  để đáp ứng đầy đủ kiểm chứng 2 lớp của Judge Agent.
+- Kết nối LLM thật qua `llm_factory` (Google Gemini & Local Ollama Qwen2.5/Vistral).
+- Hỗ trợ Structured Output (`IRACOutput`) với cơ chế JSON fallback có kiểm soát
+  cho các provider/model không hỗ trợ `.with_structured_output()` trực tiếp.
+- Hỗ trợ ngữ cảnh hội thoại đa lượt (`chat_history`) và vòng lặp Tự hiệu chỉnh (`Self-Revision`)
+  theo `critique_feedback` từ Judge Agent.
+- Tự động fallback sang bộ tổng hợp tất định từ JSON 6 trường khi không có LLM hoặc lỗi parse.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Dict, List, Optional
 
+from pydantic import ValidationError
+
 from src.consultant.conversational_advisor import build_direct_advice
-from src.consultant.prompts import IRAC_SYSTEM_PROMPT
+from src.consultant.prompts import (
+    IRAC_SYSTEM_PROMPT,
+    JSON_FALLBACK_INSTRUCTION,
+    SELF_REVISION_PROMPT_TEMPLATE,
+    format_chat_history_for_prompt,
+)
 from src.core.llm_factory import get_chat_llm
 from src.schemas import CitationMetadata, IRACOutput
+
+
+def _extract_json_object(raw_text: str) -> Optional[Dict[str, Any]]:
+    """
+    Trích xuất đối tượng JSON hợp lệ từ chuỗi phản hồi LLM (kể cả khi bọc trong ```json ... ```).
+    Trả về None nếu không parse được JSON object hợp lệ.
+    """
+    if not raw_text:
+        return None
+    cleaned = raw_text.strip()
+
+    fence_match = re.search(r"```(?:json)?\s*(\{.*\})\s*```", cleaned, flags=re.DOTALL | re.IGNORECASE)
+    if fence_match:
+        cleaned = fence_match.group(1).strip()
+    else:
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start != -1 and end > start:
+            cleaned = cleaned[start : end + 1]
+
+    try:
+        parsed = json.loads(cleaned)
+        return parsed if isinstance(parsed, dict) else None
+    except ValueError:
+        return None
+
+
+def _validate_irac_candidate(raw_obj: Any) -> Optional[IRACOutput]:
+    """
+    Kiểm tra nghiêm ngặt đầu ra LLM theo schema `IRACOutput`.
+    Không âm thầm chấp nhận dữ liệu sai schema hoặc thiếu trường bắt buộc.
+    """
+    if raw_obj is None:
+        return None
+    try:
+        if isinstance(raw_obj, IRACOutput):
+            parsed = raw_obj
+        elif isinstance(raw_obj, dict):
+            parsed = IRACOutput.model_validate(raw_obj)
+        else:
+            return None
+    except ValidationError:
+        return None
+
+    if not parsed.is_refusal:
+        required_text_fields = (parsed.issue, parsed.rule, parsed.application, parsed.conclusion)
+        if any(not str(field or "").strip() for field in required_text_fields):
+            return None
+        if parsed.citations is None:
+            return None
+
+    return parsed
+
+
+def _invoke_structured_irac(llm: Any, user_message: str) -> Optional[IRACOutput]:
+    """
+    Gọi LLM với ưu tiên `.with_structured_output(IRACOutput)`.
+    Nếu provider không hỗ trợ structured output trực tiếp hoặc lỗi gọi tool/schema,
+    thực hiện fallback có kiểm soát sang JSON mode và validate nghiêm ngặt bằng Pydantic.
+    """
+    if hasattr(llm, "with_structured_output"):
+        try:
+            structured_llm = llm.with_structured_output(IRACOutput)
+            raw_res = structured_llm.invoke(user_message)
+            validated = _validate_irac_candidate(raw_res)
+            if validated is not None:
+                return validated
+        except Exception:
+            pass
+
+    try:
+        json_prompt = f"{user_message}\n\n{JSON_FALLBACK_INSTRUCTION}"
+        resp = llm.invoke(json_prompt)
+        content = getattr(resp, "content", resp)
+        if isinstance(content, list):
+            content = "\n".join(
+                str(part.get("text", part)) if isinstance(part, dict) else str(part)
+                for part in content
+            )
+        parsed_dict = _extract_json_object(str(content or ""))
+        return _validate_irac_candidate(parsed_dict)
+    except Exception:
+        return None
+
+
+def _build_llm_user_message(
+    query: str,
+    primary_proc: Dict[str, Any],
+    expired_alerts: List[Dict[str, Any]],
+    critique_feedback: Optional[str],
+    chat_history: Optional[List[Dict[str, str]]] = None,
+    previous_draft: Optional[IRACOutput | Dict[str, Any]] = None,
+) -> str:
+    context_json = json.dumps(primary_proc, ensure_ascii=False, indent=2)
+    expired_json = (
+        json.dumps(expired_alerts, ensure_ascii=False, indent=2)
+        if expired_alerts
+        else "Không có"
+    )
+    history_text = format_chat_history_for_prompt(chat_history)
+
+    revision_block = ""
+    if critique_feedback:
+        prev_block = ""
+        if previous_draft is not None:
+            try:
+                prev_dict = (
+                    previous_draft.model_dump()
+                    if isinstance(previous_draft, IRACOutput)
+                    else dict(previous_draft)
+                )
+                prev_block = (
+                    "\nBẢN NHÁP TRƯỚC ĐÓ CẦN SỬA:\n"
+                    f"{json.dumps(prev_dict, ensure_ascii=False, indent=2)}"
+                )
+            except Exception:
+                prev_block = ""
+
+        revision_block = "\n\n" + SELF_REVISION_PROMPT_TEMPLATE.format(
+            critique_feedback=critique_feedback,
+            previous_draft_block=prev_block,
+        )
+
+    return (
+        f"{IRAC_SYSTEM_PROMPT}\n\n"
+        f"NGỮ CẢNH HỘI THOẠI GẦN ĐÂY (CHỈ DÙNG ĐỂ HIỂU MẠCH HỎI, KHÔNG THAY THẾ JSON GỐC):\n{history_text}\n\n"
+        f"CÂU HỎI HIỆN TẠI CỦA NGƯỜI DÂN: {query}\n\n"
+        f"DỮ LIỆU HỒ SƠ THỦ TỤC 6 TRƯỜNG (JSON GỐC — NGUỒN SỰ THẬT DUY NHẤT):\n{context_json}\n\n"
+        f"CẢNH BÁO QUY ĐỊNH CŨ HẾT HIỆU LỰC (NẾU CÓ):\n{expired_json}"
+        f"{revision_block}"
+    )
 
 
 def try_generate_with_gemini(
@@ -25,60 +166,44 @@ def try_generate_with_gemini(
     hybrid_score: float,
     model_name: Optional[str] = None,
     api_key: Optional[str] = None,
+    provider: Optional[str] = None,
+    base_url: Optional[str] = None,
     chat_history: Optional[List[Dict[str, str]]] = None,
+    previous_draft: Optional[IRACOutput | Dict[str, Any]] = None,
 ) -> Optional[IRACOutput]:
-    """Gọi Google Gemini với Structured Output (IRACOutput) nếu có API Key hợp lệ."""
-    llm = get_chat_llm(temperature=0.1, model_name=model_name, api_key=api_key)
+    """
+    Gọi LLM thật (Google Gemini hoặc Local Ollama qua `llm_factory`) với Structured Output (`IRACOutput`).
+    Giữ tên hàm `try_generate_with_gemini` tương thích ngược với caller cũ và hỗ trợ thêm provider/Ollama/chat_history.
+    """
+    llm = get_chat_llm(
+        temperature=0.1,
+        model_name=model_name,
+        api_key=api_key,
+        provider=provider,
+        base_url=base_url,
+    )
     if llm is None:
         return None
-    try:
-        structured_llm = llm.with_structured_output(IRACOutput)
-        context_json = json.dumps(primary_proc, ensure_ascii=False, indent=2)
-        expired_json = (
-            json.dumps(expired_alerts, ensure_ascii=False, indent=2)
-            if expired_alerts
-            else "Không có"
-        )
-        history_block = ""
-        if chat_history:
-            hist_lines = []
-            for idx, turn in enumerate(chat_history[-4:], start=1):
-                q_prev = (turn.get("query") or "").strip()
-                p_prev = (turn.get("procedure_name") or "").strip()
-                a_prev = (turn.get("direct_advice") or "").strip()
-                a_short = (a_prev[:260] + "...") if len(a_prev) > 260 else a_prev
-                hist_lines.append(f"- Lượt {idx}: Người dùng hỏi \"{q_prev}\"" + (f" [Thủ tục: {p_prev}]" if p_prev else ""))
-                if a_short:
-                    hist_lines.append(f"  Trợ lý trả lời: {a_short}")
-            history_block = "\n\nNGỮ CẢNH HỘI THOẠI GẦN ĐÂY:\n" + "\n".join(hist_lines)
 
-        form_ids = [f["form_id"] for f in primary_proc.get("thanh_phan_ho_so", {}).get("giay_to_bat_buoc", [])]
-        law_ids = [c["law_id"] for c in primary_proc.get("can_cu_phap_ly", [])]
-        revision_prompt = (
-            f"\n\n[YÊU CẦU TỰ SỬA LỖI (SELF-REVISION) TỪ JUDGE AGENT]:\n{critique_feedback}\n"
-            "Hãy sửa lại toàn bộ số liệu lệ phí, thời hạn, mã trích dẫn và bổ sung đầy đủ điều kiện bắt buộc!"
-            if critique_feedback
-            else ""
-        )
-
-        user_message = (
-            f"{IRAC_SYSTEM_PROMPT}\n\n"
-            f"CÂU HỎI HIỆN TẠI CỦA NGƯỜI DÂN: {query}"
-            f"{history_block}\n\n"
-            f"DỮ LIỆU HỒ SƠ THỦ TỤC 6 TRƯỜNG (JSON GỐC):\n{context_json}\n\n"
-            f"YÊU CẦU ĐỐI SOÁT CHÍNH XÁC TRONG VĂN BẢN & `citations`:\n"
-            f"- `law_ids` bắt buộc: {law_ids}\n"
-            f"- `form_ids` bắt buộc (ghi đủ trong `application` và `citations.form_ids`): {form_ids}\n\n"
-            f"CẢNH BÁO QUY ĐỊNH CŨ HẾT HIỆU LỰC (NẾU CÓ):\n{expired_json}"
-            f"{revision_prompt}"
-        )
-        result: IRACOutput = structured_llm.invoke(user_message)
-        if not result.direct_advice:
-            result.direct_advice = build_direct_advice(query, primary_proc, expired_alerts)
-        result.confidence_score = round(min(0.99, max(0.75, hybrid_score)), 2)
-        return result
-    except Exception:
+    user_message = _build_llm_user_message(
+        query=query,
+        primary_proc=primary_proc,
+        expired_alerts=expired_alerts,
+        critique_feedback=critique_feedback,
+        chat_history=chat_history,
+        previous_draft=previous_draft,
+    )
+    result = _invoke_structured_irac(llm, user_message)
+    if result is None:
         return None
+
+    if not result.direct_advice:
+        result.direct_advice = build_direct_advice(query, primary_proc, expired_alerts)
+    result.confidence_score = round(min(0.99, max(0.75, hybrid_score)), 2)
+    return result
+
+
+try_generate_with_llm = try_generate_with_gemini
 
 
 def synthesize_structured_irac(
@@ -89,6 +214,7 @@ def synthesize_structured_irac(
     revision_count: int,
     hybrid_score: float,
     simulate_initial_error: bool = False,
+    chat_history: Optional[List[Dict[str, str]]] = None,
 ) -> IRACOutput:
     """
     Tổng hợp lời tư vấn tự nhiên (`direct_advice`) kết hợp lập luận chuẩn IRAC
@@ -173,10 +299,15 @@ def synthesize_structured_irac(
         if revision_count > 0
         else ""
     )
+    history_note = (
+        " *(kết hợp ngữ cảnh hội thoại trước đó)*"
+        if chat_history
+        else ""
+    )
 
     issue_text = (
         f"Với câu hỏi *\"{query}\"*, chuyên viên xác định vấn đề của bạn liên quan trực tiếp đến "
-        f"**{ten_tt}** (`{ma_tt}`) thuộc nhóm **{phan_nhom} — {linh_vuc}**{stage_note}{revision_badge}."
+        f"**{ten_tt}** (`{ma_tt}`) thuộc nhóm **{phan_nhom} — {linh_vuc}**{stage_note}{history_note}{revision_badge}."
     )
 
     rule_lines = []

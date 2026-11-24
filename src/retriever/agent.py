@@ -1,6 +1,7 @@
 """
 NHÁNH NGUYỄN HỮU HẢI LONG — Lớp Điều phối RetrieverAgent:
-Kết hợp Query Rewriting, Metadata Filtering, Rank-BM25 và ChromaDB Vector Search.
+Kết hợp Query Rewriting, Metadata Filtering, Rank-BM25 và ChromaDB Vector Search
+thông qua thuật toán Reciprocal Rank Fusion (RRF) và phát hiện hết hiệu lực động.
 """
 
 from __future__ import annotations
@@ -8,7 +9,7 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from src.core.config import BM25_WEIGHT, DEFAULT_DATA_PATH, VECTOR_WEIGHT
 from src.retriever.bm25_engine import BM25Okapi
@@ -19,12 +20,45 @@ from src.retriever.vector_store import init_chroma_collection, query_chroma_scor
 from src.schemas import ProcedureRecord
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Reciprocal Rank Fusion (RRF)
+# ──────────────────────────────────────────────────────────────────────────────
+_RRF_K = 60  # Hằng số giảm phạt vị trí (tiêu chuẩn: 60)
+
+
+def _rrf_score(rank: int, k: int = _RRF_K) -> float:
+    """Điểm RRF cho vị trí rank (1-indexed): 1 / (k + rank)."""
+    return 1.0 / (k + rank)
+
+
+def _reciprocal_rank_fusion(
+    bm25_ranked: List[Tuple[str, float]],   # [(ma_tt, bm25_score), ...] đã sort giảm dần
+    vec_ranked: List[Tuple[str, float]],    # [(ma_tt, vec_score), ...] đã sort giảm dần
+    bm25_weight: float = BM25_WEIGHT,
+    vector_weight: float = VECTOR_WEIGHT,
+) -> Dict[str, float]:
+    """
+    Kết hợp hai danh sách xếp hạng bằng RRF có trọng số.
+    Trả về {ma_thu_tuc: rrf_score}.
+    """
+    rrf_scores: Dict[str, float] = {}
+
+    for rank, (ma_tt, _) in enumerate(bm25_ranked, start=1):
+        rrf_scores[ma_tt] = rrf_scores.get(ma_tt, 0.0) + bm25_weight * _rrf_score(rank)
+
+    for rank, (ma_tt, _) in enumerate(vec_ranked, start=1):
+        rrf_scores[ma_tt] = rrf_scores.get(ma_tt, 0.0) + vector_weight * _rrf_score(rank)
+
+    return rrf_scores
+
+
 class RetrieverAgent:
     """
     AGENT 01 — RETRIEVER AGENT (Tác tử Tra cứu Hồ sơ Đa tầng):
-    - Query Rewriting & Domain Routing
+    - Query Rewriting & Domain Routing (kết hợp COLLOQUIAL_TO_LEGAL_MAP + LLM fallback)
     - Metadata Filtering (Phân nhóm, Lĩnh vực, Cấp thẩm quyền, Giai đoạn tố tụng, Hiệu lực thời gian)
-    - Hybrid Search (Rank-BM25 + ChromaDB Vector Store)
+    - Hybrid Search: Rank-BM25 + ChromaDB Vector Store kết hợp qua Reciprocal Rank Fusion (RRF)
+    - Phát hiện văn bản hết hiệu lực động (không hardcode mã thủ tục)
     """
 
     def __init__(
@@ -42,6 +76,9 @@ class RetrieverAgent:
         self.procedures_by_id: Dict[str, Dict[str, Any]] = {}
         self.corpus_texts: List[str] = []
         self.tokenized_corpus: List[List[str]] = []
+
+        # Chỉ mục phụ: thủ tục đã hết hiệu lực (phục vụ cảnh báo động)
+        self.expired_procedures: List[Dict[str, Any]] = []
 
         self._load_and_validate_data()
         self.bm25 = BM25Okapi(self.tokenized_corpus)
@@ -62,9 +99,20 @@ class RetrieverAgent:
             ma_tt = proc_dict["ma_va_ten_thu_tuc"]["ma_thu_tuc"]
             self.raw_procedures.append(proc_dict)
             self.procedures_by_id[ma_tt] = proc_dict
+
+            # Phân loại chỉ mục hết hiệu lực (động, không hardcode mã)
+            has_any_expired = any(
+                l["trang_thai_hieu_luc"] == "HẾT HIỆU LỰC"
+                for l in proc_dict["can_cu_phap_ly"]
+            )
+            if has_any_expired:
+                self.expired_procedures.append(proc_dict)
+
             full_text = procedure_to_searchable_text(proc_dict)
             self.corpus_texts.append(full_text)
             self.tokenized_corpus.append(tokenize_vietnamese(full_text))
+
+    # ── Delegate methods ────────────────────────────────────────────────────────
 
     def rewrite_query_and_route(
         self, query: str, preferred_domain: Optional[str] = None
@@ -91,6 +139,45 @@ class RetrieverAgent:
             effective_date=effective_date,
         )
 
+    # ── Expired Alert Detection (Dynamic) ──────────────────────────────────────
+
+    def _get_relevant_expired_alerts(
+        self, query: str, detected_domain: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Phát hiện văn bản hết hiệu lực có liên quan đến câu hỏi theo cách động.
+        Không hardcode mã thủ tục — dùng BM25 trên corpus tất cả thủ tục HẾT HIỆU LỰC.
+        """
+        if not self.expired_procedures:
+            return []
+
+        q_lower = query.lower()
+        relevant: List[Dict[str, Any]] = []
+
+        for proc in self.expired_procedures:
+            info = proc["ma_va_ten_thu_tuc"]
+            ten = info["ten_thu_tuc"].lower()
+            linh_vuc = info["linh_vuc"].lower()
+            dieu_kien = proc["thanh_phan_ho_so"].get("dieu_kien_bat_buoc", "").lower()
+
+            # Khớp ngữ nghĩa nhẹ: lĩnh vực hoặc từ khóa tên thủ tục trong câu hỏi
+            match_score = 0
+            for word in q_lower.split():
+                if len(word) >= 3:
+                    if word in ten or word in linh_vuc or word in dieu_kien:
+                        match_score += 1
+
+            # Khớp domain: chỉ trả về cảnh báo cùng phân nhóm nếu được lọc
+            if detected_domain and detected_domain != info["phan_nhom"]:
+                continue
+
+            if match_score >= 1:
+                relevant.append(proc)
+
+        return relevant
+
+    # ── Core Retrieval ──────────────────────────────────────────────────────────
+
     def retrieve_hybrid(
         self,
         query: str,
@@ -102,30 +189,36 @@ class RetrieverAgent:
         only_active: bool = True,
         effective_date: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Thực hiện Hybrid Search kết hợp điểm số giữa Rank-BM25 và ChromaDB Vector Store."""
+        """
+        Thực hiện Hybrid Search kết hợp Rank-BM25 và ChromaDB Vector Store
+        thông qua thuật toán Reciprocal Rank Fusion (RRF) có trọng số.
+        """
         start_time = time.perf_counter()
         routing_info = rewrite_query_and_route(query, preferred_domain=phan_nhom)
         rewritten_query = routing_info["rewritten_query"]
+        detected_domain = routing_info["detected_domain"]
 
+        # ── BM25 Scoring ───────────────────────────────────────────────────────
         query_tokens = tokenize_vietnamese(rewritten_query)
         bm25_raw_scores = self.bm25.get_scores(query_tokens)
-        raw_max = (
-            max(bm25_raw_scores)
-            if len(bm25_raw_scores) > 0 and max(bm25_raw_scores) > 0
-            else 1.0
-        )
-        # Chống thổi phồng điểm BM25 thành 1.0 khi câu hỏi không khớp từ khóa pháp lý mở rộng nào
+
+        # Normalize BM25
+        raw_max = max(bm25_raw_scores) if bm25_raw_scores and max(bm25_raw_scores) > 0 else 1.0
         has_legal_expansion = bool(routing_info.get("matched_expansions"))
         norm_denom = raw_max if has_legal_expansion else max(raw_max, 14.0)
         bm25_norm_scores = [float(min(1.0, s / norm_denom)) for s in bm25_raw_scores]
 
+        # ── Vector Scoring ─────────────────────────────────────────────────────
         vector_scores_map = query_chroma_scores(
             self.chroma_collection,
             rewritten_query,
             n_results=len(self.raw_procedures),
         )
 
-        scored_results: List[Dict[str, Any]] = []
+        # ── Metadata Filter + Build Ranked Lists ───────────────────────────────
+        bm25_candidates: List[Tuple[str, float]] = []
+        vec_candidates: List[Tuple[str, float]] = []
+
         for idx, proc in enumerate(self.raw_procedures):
             if not passes_metadata_filter(
                 proc,
@@ -140,34 +233,52 @@ class RetrieverAgent:
 
             ma_tt = proc["ma_va_ten_thu_tuc"]["ma_thu_tuc"]
             bm25_s = bm25_norm_scores[idx]
-            vec_s = vector_scores_map.get(ma_tt, bm25_s)
-            hybrid_score = (self.bm25_weight * bm25_s) + (self.vector_weight * vec_s)
+            vec_s = vector_scores_map.get(ma_tt, 0.0)
 
-            if ma_tt.lower() in rewritten_query.lower():
-                hybrid_score = min(1.0, hybrid_score + 0.25)
+            bm25_candidates.append((ma_tt, bm25_s))
+            vec_candidates.append((ma_tt, vec_s))
 
-            scored_results.append(
+        # Sort theo điểm giảm dần để xếp hạng
+        bm25_ranked = sorted(bm25_candidates, key=lambda x: x[1], reverse=True)
+        vec_ranked = sorted(vec_candidates, key=lambda x: x[1], reverse=True)
+
+        # ── Reciprocal Rank Fusion (RRF) ───────────────────────────────────────
+        rrf_scores = _reciprocal_rank_fusion(
+            bm25_ranked, vec_ranked,
+            bm25_weight=self.bm25_weight,
+            vector_weight=self.vector_weight,
+        )
+
+        # Điểm thưởng khớp mã thủ tục / số hiệu điều luật trong câu hỏi
+        q_lower = rewritten_query.lower()
+        for ma_tt in list(rrf_scores.keys()):
+            if ma_tt.lower() in q_lower:
+                rrf_scores[ma_tt] = min(1.0, rrf_scores[ma_tt] + 0.25)
+
+        # Dựng danh sách kết quả
+        all_scored: List[Dict[str, Any]] = []
+        for ma_tt, rrf_s in rrf_scores.items():
+            proc = self.procedures_by_id.get(ma_tt)
+            if proc is None:
+                continue
+            bm25_s = dict(bm25_candidates).get(ma_tt, 0.0)
+            vec_s = vector_scores_map.get(ma_tt, 0.0)
+            all_scored.append(
                 {
                     "procedure": proc,
                     "ma_thu_tuc": ma_tt,
                     "ten_thu_tuc": proc["ma_va_ten_thu_tuc"]["ten_thu_tuc"],
-                    "hybrid_score": round(hybrid_score, 4),
+                    "hybrid_score": round(rrf_s, 4),
                     "bm25_score": round(bm25_s, 4),
                     "vector_score": round(vec_s, 4),
                 }
             )
 
-        scored_results.sort(key=lambda x: x["hybrid_score"], reverse=True)
-        top_results = scored_results[:top_k]
+        all_scored.sort(key=lambda x: x["hybrid_score"], reverse=True)
+        top_results = all_scored[:top_k]
 
-        q_lower = query.lower()
-        expired_alerts: List[Dict[str, Any]] = []
-        if "hộ khẩu" in q_lower or "hk07" in q_lower:
-            if "TTHC-CT-OLD-01" in self.procedures_by_id:
-                expired_alerts.append(self.procedures_by_id["TTHC-CT-OLD-01"])
-        if "cmnd" in q_lower or "chứng minh nhân dân" in q_lower or "9 số" in q_lower:
-            if "TTHC-CC-OLD-02" in self.procedures_by_id:
-                expired_alerts.append(self.procedures_by_id["TTHC-CC-OLD-02"])
+        # ── Phát hiện văn bản hết hiệu lực (Động) ─────────────────────────────
+        expired_alerts = self._get_relevant_expired_alerts(query, detected_domain)
 
         latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
         return {

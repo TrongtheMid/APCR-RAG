@@ -204,22 +204,30 @@ COLLOQUIAL_TO_LEGAL_MAP: List[Tuple[List[str], str, Optional[str]]] = [
 
 
 def rewrite_query_and_route(
-    query: str, preferred_domain: Optional[str] = None
+    query: str,
+    preferred_domain: Optional[str] = None,
+    llm: Optional[Any] = None,
 ) -> Dict[str, Any]:
     """
     Chuyển đổi câu hỏi đời thường thành truy vấn pháp lý chuẩn (Query Rewriting)
     và phân loại miền dữ liệu (Domain Routing: Thủ tục hành chính vs Tố tụng hình sự).
+
+    Hai tầng xử lý:
+    1. COLLOQUIAL_TO_LEGAL_MAP (tốc độ cao, zero-token-cost, không cần LLM)
+    2. LLM Query Decomposition (tùy chọn, dùng khi câu hỏi đa ý / liên thông)
     """
     q_lower = query.lower()
     expansions: List[str] = []
     detected_domain: Optional[str] = preferred_domain
 
+    # Tầng 1: Khớp COLLOQUIAL_TO_LEGAL_MAP
     for keywords, legal_expansion, domain in COLLOQUIAL_TO_LEGAL_MAP:
         if any(kw in q_lower for kw in keywords):
             expansions.append(legal_expansion)
             if not detected_domain and domain:
                 detected_domain = domain
 
+    # Phát hiện domain qua marker từ khóa hình sự
     if not detected_domain:
         criminal_markers = [
             "bị can", "bị cáo", "tạm giam", "tạm giữ", "tội phạm", "khởi tố",
@@ -235,9 +243,34 @@ def rewrite_query_and_route(
     if expansions:
         rewritten_query = f"{query} | Truy vấn pháp lý mở rộng: {' ; '.join(expansions)}"
 
+    # Tầng 2: LLM Query Decomposition (tùy chọn — chỉ chạy khi có LLM và câu hỏi dài/phức tạp)
+    llm_decomposed: List[str] = []
+    if llm is not None and len(query.split()) >= 8 and len(expansions) == 0:
+        try:
+            decompose_prompt = (
+                "Bạn là chuyên gia pháp lý Việt Nam. Hãy phân tách câu hỏi sau thành "
+                "tối đa 3 truy vấn pháp lý con (mỗi dòng một truy vấn), chỉ liệt kê "
+                "thuật ngữ pháp lý, không giải thích:\n"
+                f"Câu hỏi: {query}\nTruy vấn con:"
+            )
+            response = llm.invoke(decompose_prompt)
+            raw_text = getattr(response, "content", str(response))
+            llm_decomposed = [
+                line.strip().lstrip("-•●123456789. ")
+                for line in raw_text.strip().split("\n")
+                if len(line.strip()) >= 5
+            ][:3]
+            if llm_decomposed:
+                rewritten_query = (
+                    f"{rewritten_query} | LLM phân tách: {' ; '.join(llm_decomposed)}"
+                )
+        except Exception:
+            pass  # Fallback im lặng về Tầng 1
+
     return {
         "original_query": query,
         "rewritten_query": rewritten_query,
         "detected_domain": detected_domain,
         "matched_expansions": expansions,
+        "llm_decomposed": llm_decomposed,
     }
