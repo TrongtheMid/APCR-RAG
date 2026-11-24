@@ -39,15 +39,24 @@ def _reciprocal_rank_fusion(
 ) -> Dict[str, float]:
     """
     Kết hợp hai danh sách xếp hạng bằng RRF có trọng số.
+    Chỉ xếp hạng các ứng viên có điểm dương (> 0) để tránh nhiễu đồng hạng 0.0.
     Trả về {ma_thu_tuc: rrf_score}.
     """
     rrf_scores: Dict[str, float] = {}
 
-    for rank, (ma_tt, _) in enumerate(bm25_ranked, start=1):
-        rrf_scores[ma_tt] = rrf_scores.get(ma_tt, 0.0) + bm25_weight * _rrf_score(rank)
+    bm25_pos_rank = 0
+    for ma_tt, score in bm25_ranked:
+        if score <= 0.0:
+            continue
+        bm25_pos_rank += 1
+        rrf_scores[ma_tt] = rrf_scores.get(ma_tt, 0.0) + bm25_weight * _rrf_score(bm25_pos_rank)
 
-    for rank, (ma_tt, _) in enumerate(vec_ranked, start=1):
-        rrf_scores[ma_tt] = rrf_scores.get(ma_tt, 0.0) + vector_weight * _rrf_score(rank)
+    vec_pos_rank = 0
+    for ma_tt, score in vec_ranked:
+        if score <= 0.0:
+            continue
+        vec_pos_rank += 1
+        rrf_scores[ma_tt] = rrf_scores.get(ma_tt, 0.0) + vector_weight * _rrf_score(vec_pos_rank)
 
     return rrf_scores
 
@@ -203,7 +212,11 @@ class RetrieverAgent:
         bm25_raw_scores = self.bm25.get_scores(query_tokens)
 
         # Normalize BM25
-        raw_max = max(bm25_raw_scores) if bm25_raw_scores and max(bm25_raw_scores) > 0 else 1.0
+        raw_max = (
+            float(max(bm25_raw_scores))
+            if len(bm25_raw_scores) > 0 and float(max(bm25_raw_scores)) > 0
+            else 1.0
+        )
         has_legal_expansion = bool(routing_info.get("matched_expansions"))
         norm_denom = raw_max if has_legal_expansion else max(raw_max, 14.0)
         bm25_norm_scores = [float(min(1.0, s / norm_denom)) for s in bm25_raw_scores]
@@ -242,33 +255,39 @@ class RetrieverAgent:
         bm25_ranked = sorted(bm25_candidates, key=lambda x: x[1], reverse=True)
         vec_ranked = sorted(vec_candidates, key=lambda x: x[1], reverse=True)
 
-        # ── Reciprocal Rank Fusion (RRF) ───────────────────────────────────────
+        # ── Reciprocal Rank Fusion (RRF) chuẩn hóa về thang [0.0, 1.0] ─────────
         rrf_scores = _reciprocal_rank_fusion(
             bm25_ranked, vec_ranked,
             bm25_weight=self.bm25_weight,
             vector_weight=self.vector_weight,
         )
+        max_rrf_theoretical = (self.bm25_weight + self.vector_weight) / (_RRF_K + 1.0) or 1.0
 
-        # Điểm thưởng khớp mã thủ tục / số hiệu điều luật trong câu hỏi
+        # Dựng danh sách kết quả kết hợp RRF rank + cường độ tín hiệu thực tế
         q_lower = rewritten_query.lower()
-        for ma_tt in list(rrf_scores.keys()):
-            if ma_tt.lower() in q_lower:
-                rrf_scores[ma_tt] = min(1.0, rrf_scores[ma_tt] + 0.25)
-
-        # Dựng danh sách kết quả
+        bm25_score_map = dict(bm25_candidates)
         all_scored: List[Dict[str, Any]] = []
-        for ma_tt, rrf_s in rrf_scores.items():
+        for ma_tt, _ in bm25_candidates:
             proc = self.procedures_by_id.get(ma_tt)
             if proc is None:
                 continue
-            bm25_s = dict(bm25_candidates).get(ma_tt, 0.0)
+            bm25_s = bm25_score_map.get(ma_tt, 0.0)
             vec_s = vector_scores_map.get(ma_tt, 0.0)
+            rrf_scaled = min(1.0, rrf_scores.get(ma_tt, 0.0) / max_rrf_theoretical)
+            evidence = max(bm25_s, vec_s)
+            raw_weighted = self.bm25_weight * bm25_s + self.vector_weight * vec_s
+            hybrid_s = 0.5 * (rrf_scaled * evidence) + 0.5 * raw_weighted
+
+            # Điểm thưởng khớp mã thủ tục / số hiệu điều luật trong câu hỏi
+            if ma_tt.lower() in q_lower:
+                hybrid_s = min(1.0, hybrid_s + 0.25)
+
             all_scored.append(
                 {
                     "procedure": proc,
                     "ma_thu_tuc": ma_tt,
                     "ten_thu_tuc": proc["ma_va_ten_thu_tuc"]["ten_thu_tuc"],
-                    "hybrid_score": round(rrf_s, 4),
+                    "hybrid_score": round(hybrid_s, 4),
                     "bm25_score": round(bm25_s, 4),
                     "vector_score": round(vec_s, 4),
                 }
