@@ -126,26 +126,51 @@ class LegalMultiAgentOrchestrator:
         }
 
     def consultant_node(self, state: LegalWorkflowState) -> Dict[str, Any]:
-        """Node 2: Thực thi Consultant Agent (Sinh bản nháp IRAC hoặc Tự hiệu chỉnh Self-Revision)."""
+        """Node 2: Thực thi Consultant Agent (Hỏi ngược làm rõ, Bản nháp IRAC hoặc Self-Revision)."""
         t0 = time.perf_counter()
         rev_count = state.get("revision_count", 0)
         eff_query = state.get("effective_query") or state["query"]
-        draft_obj: IRACOutput = self.consultant.generate_irac_consultation(
-            query=eff_query,
-            retrieved_items=state.get("retrieved_items", []),
-            expired_alerts=state.get("expired_alerts", []),
-            critique_feedback=state.get("critique_feedback"),
-            revision_count=rev_count,
-            simulate_initial_error=state.get("simulate_initial_error", False),
-        )
+        chat_history = state.get("chat_history") or []
+        critique_feedback = state.get("critique_feedback")
+        simulate_err = state.get("simulate_initial_error", False)
+
+        if hasattr(self.consultant, "consult_with_history"):
+            consult_res = self.consultant.consult_with_history(
+                query=eff_query,
+                retrieved_items=state.get("retrieved_items", []),
+                expired_alerts=state.get("expired_alerts", []),
+                chat_history=chat_history,
+                critique_feedback=critique_feedback,
+                revision_count=rev_count,
+                simulate_initial_error=simulate_err,
+                enable_clarification=True,
+            )
+            draft_obj: IRACOutput = consult_res["irac_output"]
+            needs_clarify = bool(consult_res.get("needs_clarification", False))
+            clarify_q = consult_res.get("clarification_question")
+        else:
+            draft_obj = self.consultant.generate_irac_consultation(
+                query=eff_query,
+                retrieved_items=state.get("retrieved_items", []),
+                expired_alerts=state.get("expired_alerts", []),
+                critique_feedback=critique_feedback,
+                revision_count=rev_count,
+                simulate_initial_error=simulate_err,
+            )
+            needs_clarify = False
+            clarify_q = None
+
         node_ms = round((time.perf_counter() - t0) * 1000, 2)
         trace = list(state.get("workflow_trace", []))
         action_lbl = "Bản nháp IRAC đầu tiên" if rev_count == 0 else f"Tự hiệu chỉnh lần #{rev_count}"
-        summary_msg = (
-            "Kích hoạt Từ chối An toàn (Deterministic Refusal)"
-            if draft_obj.is_refusal
-            else f"{action_lbl} · Độ tin cậy {int(draft_obj.confidence_score * 100)}%"
-        )
+        if draft_obj.is_refusal:
+            summary_msg = "Kích hoạt Từ chối An toàn (Deterministic Refusal)"
+        elif needs_clarify:
+            action_lbl = "Hỏi ngược làm rõ (Clarification)"
+            summary_msg = "Thiếu dữ kiện phân định thủ tục/thẩm quyền -> Hỏi ngược người dân"
+        else:
+            summary_msg = f"{action_lbl} · Độ tin cậy {int(draft_obj.confidence_score * 100)}%"
+
         trace.append(
             {
                 "node": "consultant",
@@ -154,11 +179,15 @@ class LegalMultiAgentOrchestrator:
                 "summary": summary_msg,
             }
         )
-        return {
+        result: Dict[str, Any] = {
             "irac_draft": draft_obj.model_dump(),
-            "needs_clarification": False,
+            "needs_clarification": needs_clarify,
+            "clarification_question": clarify_q,
             "workflow_trace": trace,
         }
+        if needs_clarify:
+            result["final_status"] = "NEEDS_CLARIFICATION"
+        return result
 
     def judge_node(self, state: LegalWorkflowState) -> Dict[str, Any]:
         """Node 3: Thực thi Judge Agent 2 lớp (Lớp 1 Code Tất định + Regex, Lớp 2 Claim-Level Critic)."""

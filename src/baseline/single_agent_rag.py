@@ -1,6 +1,8 @@
 """
 NHÁNH VŨ GIA ANH ĐỨC — Module Single-Agent RAG Baseline (Hạng mục 2.4):
 Pipeline đối chứng truyền thống (cắt đoạn cố định + tìm kiếm vector thuần túy + sinh tự do 1 bước).
+Dùng chung cơ chế chọn provider/model của `src.core.llm_factory` với Consultant để bảo đảm
+so sánh thực nghiệm công bằng trên cùng mô hình LLM (hoặc cùng chạy fallback offline khi không có LLM).
 """
 
 from __future__ import annotations
@@ -11,7 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from src.baseline.fixed_chunker import build_fixed_word_chunks
 from src.core.config import DEFAULT_DATA_PATH
-from src.core.llm_factory import get_chat_llm
+from src.core.llm_factory import get_chat_llm, resolve_llm_config
 from src.retriever.vector_store import LightweightLegalEmbeddingFunction
 
 
@@ -19,15 +21,28 @@ class BaselineSingleAgentRAG:
     """
     Pipeline Single-Agent RAG truyền thống dùng làm đối chứng thực nghiệm (Baseline)
     khi đánh giá bộ 50 câu hỏi kiểm thử (RAGAS Benchmark).
+    Giữ nguyên đặc trưng đối chứng: chunk cố định, tìm kiếm vector nhẹ, sinh 1 bước,
+    không lọc hiệu lực thời gian, không ép IRAC và không có Judge Agent.
     """
 
     def __init__(
         self,
         data_path: Optional[Path | str] = None,
         chunk_word_limit: int = 120,
+        provider: Optional[str] = None,
+        model_name: Optional[str] = None,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        temperature: float = 0.4,
     ) -> None:
         self.data_path = Path(data_path) if data_path else DEFAULT_DATA_PATH
         self.chunk_word_limit = chunk_word_limit
+        self.provider = provider
+        self.model_name = model_name
+        self.api_key = api_key
+        self.base_url = base_url
+        self.temperature = temperature
+
         self.chunks: List[Dict[str, Any]] = build_fixed_word_chunks(
             self.data_path, chunk_word_limit=self.chunk_word_limit
         )
@@ -63,8 +78,23 @@ class BaselineSingleAgentRAG:
         top_chunks = self.retrieve_naive_vector(query, top_k=2)
         combined_context = "\n---\n".join(c["text"] for c in top_chunks)
 
+        llm_cfg = resolve_llm_config(
+            provider=self.provider,
+            model_name=self.model_name,
+            api_key=self.api_key,
+            base_url=self.base_url,
+        )
         answer_text: Optional[str] = None
-        llm = get_chat_llm(temperature=0.4)
+        used_provider = "offline"
+        used_model = None
+
+        llm = get_chat_llm(
+            temperature=self.temperature,
+            model_name=llm_cfg["model_name"],
+            api_key=llm_cfg["api_key"],
+            provider=llm_cfg["provider"],
+            base_url=llm_cfg["base_url"],
+        )
         if llm is not None:
             try:
                 prompt = (
@@ -73,7 +103,17 @@ class BaselineSingleAgentRAG:
                     f"Câu hỏi: {query}"
                 )
                 resp = llm.invoke(prompt)
-                answer_text = str(resp.content)
+                content = getattr(resp, "content", resp)
+                if isinstance(content, list):
+                    content = "\n".join(
+                        str(part.get("text", part)) if isinstance(part, dict) else str(part)
+                        for part in content
+                    )
+                text_val = str(content or "").strip()
+                if text_val:
+                    answer_text = text_val
+                    used_provider = str(llm_cfg["provider"])
+                    used_model = llm_cfg["model_name"]
             except Exception:
                 answer_text = None
 
@@ -93,6 +133,8 @@ class BaselineSingleAgentRAG:
             "answer": answer_text,
             "retrieved_chunks": top_chunks,
             "latency_ms": latency_ms,
+            "llm_provider": used_provider,
+            "llm_model": used_model,
             "architecture": "Single-Agent RAG (Fixed Chunking + No Judge Verification)",
         }
 
