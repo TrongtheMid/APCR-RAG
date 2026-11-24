@@ -1,7 +1,8 @@
 """
 NHÁNH NGUYỄN HỮU HẢI LONG — Module Xử lý Ngôn ngữ & Tách từ Tiếng Việt:
 - Chuẩn hóa văn bản Unicode NFC.
-- Tách từ kết hợp Unigram + Bigram tiếng Việt cho chỉ mục BM25.
+- Tách từ tiếng Việt bằng underthesea/pyvi (nếu đã cài) hoặc fallback Unigram+Bigram.
+- Từ điển đồng nghĩa đời thường -> thuật ngữ luật (COLLOQUIAL_TO_LEGAL_DICT).
 - Chuyển đổi Lược đồ 6 trường JSON thành văn bản đánh chỉ mục.
 - Tô sáng (highlight) từ khóa khớp bằng thẻ HTML <mark>.
 """
@@ -12,6 +13,67 @@ import re
 import unicodedata
 from typing import Any, Dict, List, Tuple
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Từ điển đồng nghĩa đời thường → thuật ngữ pháp lý chuẩn
+# Phục vụ chuẩn hóa truy vấn trước khi đưa vào tokenizer
+# ──────────────────────────────────────────────────────────────────────────────
+COLLOQUIAL_TO_LEGAL_DICT: Dict[str, str] = {
+    # Biện pháp ngăn chặn
+    "bảo lãnh":          "bảo lĩnh",
+    "xin về":            "bảo lĩnh tại ngoại",
+    "nộp tiền bảo lãnh": "đặt tiền bảo đảm",
+    "ký quỹ":            "đặt tiền bảo đảm",
+    "kho bạc":           "Kho bạc Nhà nước",
+    # Hộ tịch
+    "giấy khai sinh":    "đăng ký khai sinh",
+    "giấy chứng sinh":   "giấy chứng sinh",
+    "mới sinh":          "khai sinh",
+    "giấy kết hôn":      "Giấy chứng nhận kết hôn",
+    "giấy báo tử":       "khai tử",
+    # Cư trú
+    "sổ hộ khẩu":        "đăng ký thường trú",
+    "nhập khẩu":         "đăng ký thường trú",
+    "hộ khẩu":           "đăng ký thường trú",
+    "ở trọ":             "đăng ký tạm trú",
+    # Căn cước
+    "cmnd":              "thẻ Căn cước",
+    "chứng minh nhân dân": "thẻ Căn cước",
+    "cccd":              "thẻ Căn cước",
+    # Hình sự
+    "báo công an":       "tố giác tội phạm",
+    "trình báo":         "tố giác tội phạm",
+    "mất trộm":          "trộm cắp tài sản",
+    "bị đánh":           "cố ý gây thương tích",
+    "chống án":          "kháng cáo",
+    "xin hoãn đi tù":    "hoãn chấp hành án phạt tù",
+    "làm sổ đỏ":         "Giấy chứng nhận quyền sử dụng đất",
+    "sang tên":          "đăng ký biến động đất đai",
+    "bằng lái":          "giấy phép lái xe",
+    "passport":          "hộ chiếu",
+    "mở công ty":        "đăng ký doanh nghiệp",
+    "thất nghiệp":       "trợ cấp thất nghiệp",
+    "rút bhxh":          "bảo hiểm xã hội một lần",
+    "phiếu số 1":        "Phiếu lý lịch tư pháp số 1",
+    "phiếu số 2":        "Phiếu lý lịch tư pháp số 2",
+}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Tích hợp NLP tiếng Việt thực chiến (underthesea / pyvi)
+# Fallback sang Unigram+Bigram nội bộ nếu chưa cài
+# ──────────────────────────────────────────────────────────────────────────────
+_NLP_BACKEND: str = "builtin"
+
+try:
+    from underthesea import word_tokenize as _underthesea_tokenize  # type: ignore
+    _NLP_BACKEND = "underthesea"
+except ImportError:
+    try:
+        from pyvi import ViTokenizer as _pyvi_tokenizer  # type: ignore
+        _NLP_BACKEND = "pyvi"
+    except ImportError:
+        pass
+
 
 def normalize_text(text: str) -> str:
     """Chuẩn hóa chữ thường và khoảng trắng phục vụ tách từ tiếng Việt."""
@@ -20,12 +82,53 @@ def normalize_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def tokenize_vietnamese(text: str) -> List[str]:
-    """Tách từ kết hợp unigram và bigram tiếng Việt để tăng độ chính xác cho BM25."""
-    norm = normalize_text(text)
-    words = [w for w in norm.split(" ") if len(w) > 1 or w.isdigit()]
+def apply_colloquial_normalization(text: str) -> str:
+    """Áp dụng từ điển đồng nghĩa đời thường → thuật ngữ pháp lý trước khi tokenize."""
+    result = text
+    for colloquial, legal in COLLOQUIAL_TO_LEGAL_DICT.items():
+        result = re.sub(re.escape(colloquial), legal, result, flags=re.IGNORECASE)
+    return result
+
+
+def vietnamese_legal_tokenize(text: str) -> List[str]:
+    """
+    Tách từ tiếng Việt chuyên biệt cho văn bản pháp lý.
+    Ưu tiên: underthesea → pyvi → fallback Unigram+Bigram nội bộ.
+    Giữ nguyên từ ghép pháp lý quan trọng (bảo lĩnh, tạm giam, hộ tịch...).
+    """
+    normalized = apply_colloquial_normalization(normalize_text(text))
+
+    if _NLP_BACKEND == "underthesea":
+        try:
+            tokens_raw = _underthesea_tokenize(normalized, format="text")
+            tokens = [t.replace(" ", "_") for t in tokens_raw.split() if len(t) >= 1]
+            # Bổ sung unigram cho từ ghép để tăng recall BM25
+            extra = []
+            for t in tokens:
+                if "_" in t:
+                    extra.extend(t.split("_"))
+            return tokens + extra
+        except Exception:
+            pass
+
+    if _NLP_BACKEND == "pyvi":
+        try:
+            tokens_raw = _pyvi_tokenizer.tokenize(normalized)
+            tokens = [t for t in tokens_raw.split() if len(t) >= 1]
+            extra = [t.replace("_", " ") for t in tokens if "_" in t]
+            return tokens + extra
+        except Exception:
+            pass
+
+    # Fallback: Unigram + Bigram nội bộ (zero-dependency)
+    words = [w for w in normalized.split(" ") if len(w) > 1 or w.isdigit()]
     bigrams = [f"{words[i]}_{words[i + 1]}" for i in range(len(words) - 1)]
     return words + bigrams
+
+
+def tokenize_vietnamese(text: str) -> List[str]:
+    """Alias tương thích ngược cho vietnamese_legal_tokenize."""
+    return vietnamese_legal_tokenize(text)
 
 
 def procedure_to_searchable_text(proc_dict: Dict[str, Any]) -> str:
