@@ -96,16 +96,22 @@ python -c "import json; from src.evaluation import run_full_benchmark_evaluation
 
 ---
 
-## 5. Kết quả Thực nghiệm Định lượng (Ablation Study trên 50 câu Benchmark · `LLM_PROVIDER=none`)
+## 5. Kết quả Thực nghiệm Định lượng (Benchmark 50 câu & Ablation Study)
+
+### 5.1. Đánh giá Toàn trình trên LLM thật (`gemini-3.5-flash-lite`)
+- **APCR-RAG End-to-End (50 câu):** `Precision@1 = 100.0%`, `Recall@3 = 100.0%`, `Faithfulness = 100.0%`, `Hallucination Rate = 0.0%`, `Claim Coverage = 100.0%`, độ trễ trung bình `5861.9 ms`.
+- **Self-Revision Stress Test (50/50 câu gài lỗi vòng 1):** Tỷ lệ Judge bắt lỗi vòng 1 đạt **100.0% (50/50)**; tỷ lệ LLM tự sửa thành công đạt **94.0% (47/50)** (công cụ `Fallback Warning` tự động chặn 3 ca còn lại sau 2 vòng sửa, độ trễ TB `3533.68 ms`).
+
+### 5.2. Ablation Study 4 cấu hình (Chế độ tất định tái lập được)
 
 | Cấu hình hệ thống | Precision@1 | Recall@3 | Faithfulness (Phí + Hạn) | Hallucination Rate | Claim Coverage | Latency (ms) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1. Single-Agent Baseline (Fixed Chunking) | 20.0% | 20.0% | 29.0% | 71.0% | 18.85% | 10.08 |
-| 2. BM25-Only (Không Rewriter, Không Judge) | 94.0% | 100.0% | 94.0% | 6.0% | 94.0% | 36.71 |
-| 3. Hybrid + IRAC (Không có Judge 2 Lớp) | 100.0% | 100.0% | 70.0% | 30.0% | 63.0% | 69.90 |
-| **4. Full APCR-RAG (Hybrid + RRF + Reranker + IRAC + Judge 2 Lớp)** | **100.0%** | **100.0%** | **100.0%** | **0.0%** | **100.0%** | **76.06** |
+| 1. Single-Agent Baseline (Fixed Chunking) | 20.0% | 20.0% | 29.0% | 71.0% | 18.85% | 2.30–10.08 |
+| 2. BM25-Only (Không Rewriter, Không Judge) | 94.0% | 100.0% | 94.0% | 6.0% | 94.0% | 10.95–36.71 |
+| 3. Hybrid + IRAC (Không có Judge 2 Lớp) | 100.0% | 100.0% | 70.0% | 30.0% | 63.0% | 22.42–69.90 |
+| **4. Full APCR-RAG (Hybrid + RRF + Reranker + IRAC + Judge 2 Lớp)** | **100.0%** | **100.0%** | **100.0%** | **0.0%** | **100.0%** | **25.01–76.06** |
 
-- **Self-Revision Stress Test (50/50 câu gài lỗi vòng 1):** Tỷ lệ Judge bắt lỗi vòng 1 đạt **100.0% (50/50)**, tỷ lệ tự sửa thành công đạt **100.0% (50/50)** (độ trễ trung bình `76.09 ms`).
+- **Self-Revision Stress Test (chế độ `LLM_PROVIDER=none`):** Bắt lỗi vòng 1 **50/50 (100.0%)**, tự sửa thành công **50/50 (100.0%)** (`76.09 ms`).
 - **Domain Routing Confusion Matrix:** Định tuyến chính xác **25/25** Thủ tục hành chính và **25/25** Tố tụng hình sự (**Accuracy = 100.0%, F1 = 100.0%**).
 - **Bộ kiểm thử tự động (`python -m unittest discover -s tests -v`):** **48/48 tests passed (`OK`)**.
 
