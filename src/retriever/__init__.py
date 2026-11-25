@@ -8,6 +8,7 @@ from src.retriever.agent import RetrieverAgent, get_retriever_agent, reset_retri
 from src.retriever.bm25_engine import BM25Okapi, search_direct_bm25
 from src.retriever.metadata_filter import passes_metadata_filter
 from src.retriever.query_rewriter import COLLOQUIAL_TO_LEGAL_MAP, rewrite_query_and_route
+from src.retriever.reranker import LightweightLegalReranker, rerank_candidates
 from src.retriever.tokenizer import (
     COLLOQUIAL_TO_LEGAL_DICT,
     highlight_keywords_html,
@@ -43,7 +44,9 @@ __all__ = [
     "LightweightLegalEmbeddingFunction",
     "init_chroma_collection",
     "query_chroma_scores",
-    # Agent
+    # Agent & Reranker
+    "LightweightLegalReranker",
+    "rerank_candidates",
     "RetrieverAgent",
     "get_retriever_agent",
     "reset_retriever_agent",

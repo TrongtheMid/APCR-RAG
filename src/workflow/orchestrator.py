@@ -149,6 +149,8 @@ class LegalMultiAgentOrchestrator:
             draft_obj: IRACOutput = consult_res["irac_output"]
             needs_clarify = bool(consult_res.get("needs_clarification", False))
             clarify_q = consult_res.get("clarification_question")
+            clarify_obj = consult_res.get("clarification")
+            clarify_candidates = list(getattr(clarify_obj, "candidate_procedures", None) or [])
         else:
             draft_obj = self.consultant.generate_irac_consultation(
                 query=eff_query,
@@ -161,6 +163,7 @@ class LegalMultiAgentOrchestrator:
             )
             needs_clarify = False
             clarify_q = None
+            clarify_candidates = []
         node_ms = round((time.perf_counter() - t0) * 1000, 2)
         trace = list(state.get("workflow_trace", []))
         action_lbl = "Bản nháp IRAC đầu tiên" if rev_count == 0 else f"Tự hiệu chỉnh lần #{rev_count}"
@@ -184,6 +187,7 @@ class LegalMultiAgentOrchestrator:
             "irac_draft": draft_obj.model_dump(),
             "needs_clarification": needs_clarify,
             "clarification_question": clarify_q,
+            "clarification_candidates": clarify_candidates,
             "workflow_trace": trace,
         }
         if needs_clarify:

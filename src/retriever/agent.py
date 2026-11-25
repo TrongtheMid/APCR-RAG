@@ -15,6 +15,7 @@ from src.core.config import BM25_WEIGHT, DEFAULT_DATA_PATH, VECTOR_WEIGHT
 from src.retriever.bm25_engine import BM25Okapi
 from src.retriever.metadata_filter import passes_metadata_filter
 from src.retriever.query_rewriter import rewrite_query_and_route
+from src.retriever.reranker import rerank_candidates
 from src.retriever.tokenizer import procedure_to_searchable_text, tokenize_vietnamese
 from src.retriever.vector_store import init_chroma_collection, query_chroma_scores
 from src.schemas import ProcedureRecord
@@ -305,7 +306,7 @@ class RetrieverAgent:
             )
 
         all_scored.sort(key=lambda x: x["hybrid_score"], reverse=True)
-        top_results = all_scored[:top_k]
+        top_results = rerank_candidates(rewritten_query, all_scored, top_k=top_k)
 
         # ── Phát hiện văn bản hết hiệu lực (Động) ─────────────────────────────
         expired_alerts = self._get_relevant_expired_alerts(query, detected_domain)

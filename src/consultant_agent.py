@@ -5,10 +5,15 @@ Facade tương thích ngược cho src.consultant (Nhánh của Vũ Gia Anh Đ�
 from src.consultant import (
     IRAC_SYSTEM_PROMPT,
     REFUSAL_TEMPLATE_MESSAGE,
+    ClarificationResult,
     ConsultantAgent,
+    ProcedureFormGenerator,
     build_direct_advice,
     check_deterministic_refusal,
     extract_procedure_graph_data,
+    generate_procedure_docx_bytes,
+    get_related_procedures,
+    get_supported_form_fields,
     synthesize_structured_irac,
     try_generate_with_gemini,
 )
@@ -16,10 +21,15 @@ from src.consultant import (
 __all__ = [
     "IRAC_SYSTEM_PROMPT",
     "REFUSAL_TEMPLATE_MESSAGE",
+    "ClarificationResult",
     "ConsultantAgent",
+    "ProcedureFormGenerator",
     "build_direct_advice",
     "check_deterministic_refusal",
     "extract_procedure_graph_data",
+    "generate_procedure_docx_bytes",
+    "get_related_procedures",
+    "get_supported_form_fields",
     "synthesize_structured_irac",
     "try_generate_with_gemini",
 ]

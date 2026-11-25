@@ -25,6 +25,8 @@ CHROMA_PERSIST_DIR: str = os.getenv("CHROMA_PERSIST_DIR", "./data/chroma_db")
 CHROMA_COLLECTION_NAME: str = os.getenv("CHROMA_COLLECTION_NAME", "legal_procedures_bge_m3")
 EMBEDDING_MODEL_NAME: str = os.getenv("EMBEDDING_MODEL_NAME", "BAAI/bge-m3")
 USE_LIGHTWEIGHT_EMBEDDING: bool = os.getenv("USE_LIGHTWEIGHT_EMBEDDING", "true").lower() == "true"
+RERANKER_MODEL_NAME: str = os.getenv("RERANKER_MODEL_NAME", "BAAI/bge-reranker-v2-m3")
+USE_CROSS_ENCODER_RERANKER: bool = os.getenv("USE_CROSS_ENCODER_RERANKER", "false").lower() == "true"
 
 BM25_WEIGHT: float = float(os.getenv("BM25_WEIGHT", "0.65"))
 VECTOR_WEIGHT: float = float(os.getenv("VECTOR_WEIGHT", "0.35"))

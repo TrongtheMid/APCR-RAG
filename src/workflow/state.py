@@ -34,6 +34,7 @@ class LegalWorkflowState(TypedDict, total=False):
     irac_draft: Optional[Dict[str, Any]]
     needs_clarification: bool
     clarification_question: Optional[str]
+    clarification_candidates: List[Dict[str, Any]]
 
     # Kết quả từ AGENT 03 — JUDGE
     verification_result: Optional[Dict[str, Any]]

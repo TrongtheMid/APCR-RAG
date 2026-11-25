@@ -115,8 +115,14 @@ def vietnamese_legal_tokenize(text: str) -> List[str]:
         try:
             tokens_raw = _pyvi_tokenizer.tokenize(normalized)
             tokens = [t for t in tokens_raw.split() if len(t) >= 1]
-            extra = [t.replace("_", " ") for t in tokens if "_" in t]
-            return tokens + extra
+            extra: List[str] = []
+            for t in tokens:
+                if "_" in t:
+                    extra.extend(part for part in t.split("_") if part)
+            words = [w for w in normalized.split(" ") if len(w) > 1 or w.isdigit()]
+            bigrams = [f"{words[i]}_{words[i + 1]}" for i in range(len(words) - 1)]
+            token_set = set(tokens)
+            return tokens + extra + [b for b in bigrams if b not in token_set]
         except Exception:
             pass
 

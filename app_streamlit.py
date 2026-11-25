@@ -21,7 +21,12 @@ from typing import Any, Dict, List, Optional
 import streamlit as st
 import streamlit.components.v1 as components
 
-from src.consultant_agent import extract_procedure_graph_data
+from src.consultant_agent import (
+    extract_procedure_graph_data,
+    generate_procedure_docx_bytes,
+    get_related_procedures,
+    get_supported_form_fields,
+)
 from src.evaluation import run_full_benchmark_evaluation
 from src.ingestion import (
     OfficialSourceDocument,
@@ -30,6 +35,7 @@ from src.ingestion import (
     clear_processed_candidates,
     extract_procedures_from_document,
     extract_text_from_pdf_bytes,
+    extract_text_from_scanned_pdf_with_gemini,
     fetch_chinhphu_detail,
     fetch_congbao_latest,
     get_official_sources_status,
@@ -759,15 +765,127 @@ def build_schema_6_html(proc: Dict[str, Any]) -> str:
             f'</div>'
         )
 
+    # Thủ tục liên thông / liên quan (NetworkX Inter-Procedure Graph)
+    related_html = ""
+    try:
+        related_list = get_related_procedures(ma_tt, ALL_PROCS, max_hops=1)
+        if related_list:
+            rel_items = "".join(
+                f"<li><b>{esc(r['ma_thu_tuc'])}</b> — {esc(r['ten_thu_tuc'])} "
+                f"<span style='color:var(--muted); font-size:11.5px;'>({esc(r['relation'].replace('_', ' ').lower())})</span></li>"
+                for r in related_list[:5]
+            )
+            related_html = (
+                f'<div style="margin:8px 0 10px 0; padding:9px 12px; background:#FFF9F9; '
+                f'border:1px solid var(--border); border-radius:9px; font-size:12.5px;">'
+                f'<div style="font-weight:700; color:var(--red-dark); margin-bottom:4px;">🔗 Thủ tục liên thông / liên quan (NetworkX)</div>'
+                f'<ul style="margin:0 0 0 18px; padding:0;">{rel_items}</ul>'
+                f'</div>'
+            )
+    except Exception:
+        related_html = ""
+
+    # Phôi đơn .docx tạo sẵn để tải tức thì (không cần rerun)
+    docx_link_html = ""
+    try:
+        blank_docx_bytes = generate_procedure_docx_bytes(proc)
+        b64_docx = base64.b64encode(blank_docx_bytes).decode("ascii")
+        docx_mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        docx_link_html = (
+            f' <a class="dl-json-btn" download="Phoi_{esc(ma_tt)}.docx" '
+            f'href="data:{docx_mime};base64,{b64_docx}">📄 Tải phôi đơn .docx trống</a>'
+        )
+    except Exception:
+        docx_link_html = ""
+
     json_str = json.dumps(proc, ensure_ascii=False, indent=2)
     b64_json = base64.b64encode(json_str.encode("utf-8")).decode("ascii")
     return (
         f'{hub_html}'
         f'<div class="schema6-grid">{"".join(node_cards)}</div>'
+        f'{related_html}'
         f'<div style="font-size:12px; font-weight:600; color:var(--red-dark); margin-top:4px;">📄 Hồ sơ JSON chuẩn hóa</div>'
         f'<pre class="json-box">{esc(json_str)}</pre>'
+        f'<div style="display:flex; flex-wrap:wrap; gap:8px;">'
         f'<a class="dl-json-btn" download="{esc(ma_tt)}.json" '
         f'href="data:application/json;base64,{b64_json}">⬇ Tải hồ sơ JSON chuẩn hóa</a>'
+        f'{docx_link_html}'
+        f'</div>'
+    )
+
+
+@st.dialog("📝 Kê khai & Xuất Biểu mẫu Pháp lý (.docx)", width="large")
+def open_docx_generator_dialog(proc: Dict[str, Any]) -> None:
+    """Hộp thoại nhập thông tin công dân (chỉ điền dữ kiện có thật) và tải tệp .docx hoàn chỉnh."""
+    meta = get_supported_form_fields(proc)
+    ma_tt = meta["ma_thu_tuc"]
+    ten_tt = meta["ten_thu_tuc"]
+    available_forms: List[Dict[str, str]] = meta.get("available_forms") or []
+    authorities: List[str] = (proc.get("ma_va_ten_thu_tuc") or {}).get("cap_tham_quyen") or []
+
+    st.markdown(f"**[{ma_tt}] {ten_tt}**")
+    st.caption("Trường để trống sẽ tự giữ dòng chấm `........` đúng nguyên tắc không bịa dữ liệu của APCR-RAG.")
+
+    form_options = ["Phiếu kê khai chung (Toàn bộ thủ tục)"] + [
+        f"{f['form_id']} — {f['ten_giay_to']}" for f in available_forms
+    ]
+    selected_label = st.selectbox("Chọn mẫu giấy tờ cần xuất", form_options, key=f"dlg_fid_{ma_tt}")
+    selected_form_id: Optional[str] = None
+    if selected_label != form_options[0]:
+        selected_form_id = selected_label.split(" — ", 1)[0].strip()
+
+    c1, c2 = st.columns(2)
+    ho_ten = c1.text_input("Họ và tên người đề nghị", key=f"dlg_hoten_{ma_tt}")
+    ngay_sinh = c2.text_input("Ngày, tháng, năm sinh", placeholder="VD: 15/08/1998", key=f"dlg_ns_{ma_tt}")
+    cccd = c1.text_input("Số Thẻ Căn cước / CCCD / Hộ chiếu", key=f"dlg_cccd_{ma_tt}")
+    so_dt = c2.text_input("Số điện thoại liên hệ", key=f"dlg_sdt_{ma_tt}")
+    dia_chi = st.text_input("Địa chỉ thường trú / Nơi ở hiện tại", key=f"dlg_dc_{ma_tt}")
+    co_quan = st.text_input(
+        "Kính gửi (Cơ quan tiếp nhận)",
+        value=authorities[0] if authorities else "",
+        key=f"dlg_cq_{ma_tt}",
+    )
+    noi_dung = st.text_area(
+        "Nội dung đề nghị cụ thể",
+        placeholder="VD: Đề nghị giải quyết thủ tục theo đúng thành phần hồ sơ đính kèm...",
+        height=80,
+        key=f"dlg_nd_{ma_tt}",
+    )
+    ngay_lap = st.text_input(
+        "Ngày lập đơn",
+        value=datetime.date.today().strftime("Ngày %d tháng %m năm %Y"),
+        key=f"dlg_date_{ma_tt}",
+    )
+
+    doc_labels = [f"{f['form_id']} — {f['ten_giay_to']}" for f in available_forms]
+    attached = st.multiselect("Đánh dấu giấy tờ đã chuẩn bị kèm theo", doc_labels, key=f"dlg_docs_{ma_tt}")
+    attached_ids = [item.split(" — ", 1)[0].strip() for item in attached]
+
+    user_payload: Dict[str, Any] = {
+        "ho_ten": ho_ten,
+        "ngay_sinh": ngay_sinh,
+        "cccd": cccd,
+        "so_dien_thoai": so_dt,
+        "dia_chi": dia_chi,
+        "co_quan_tiep_nhan": co_quan,
+        "noi_dung_de_nghi": noi_dung,
+        "ngay_lap": ngay_lap,
+        "tai_lieu_kem_theo": attached_ids,
+    }
+    docx_bytes = generate_procedure_docx_bytes(
+        procedure=proc,
+        user_data=user_payload,
+        form_id=selected_form_id,
+    )
+    file_tag = f"{ma_tt}_{selected_form_id}" if selected_form_id else ma_tt
+    st.download_button(
+        "⬇ Tải biểu mẫu Word (.docx) đã điền",
+        data=docx_bytes,
+        file_name=f"BieuMau_{file_tag}.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        type="primary",
+        width="stretch",
+        key=f"dlg_dl_{ma_tt}",
     )
 
 
@@ -822,7 +940,12 @@ def build_graph_dot(proc: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def render_assistant_turn(state: Dict[str, Any], turn_idx: int) -> None:
+def render_assistant_turn(
+    state: Dict[str, Any],
+    turn_idx: int,
+    is_latest: bool = False,
+    conv_id: str = "main",
+) -> None:
     """Hiển thị 1 lượt trả lời của APCR-RAG với ngăn kéo chi tiết pháp lý mượt 0ms."""
     draft = state.get("irac_draft") or {}
     ver = state.get("verification_result") or {}
@@ -843,7 +966,40 @@ def render_assistant_turn(state: Dict[str, Any], turn_idx: int) -> None:
             )
         return
 
-    # 2. Từ chối an toàn
+    # 2. Hỏi ngược làm rõ dữ kiện (Clarifier — không hiển thị nhầm hộp IRAC rỗng)
+    if state.get("needs_clarification") or state.get("final_status") == "NEEDS_CLARIFICATION":
+        clarify_txt = (
+            state.get("clarification_question")
+            or draft.get("direct_advice")
+            or draft.get("issue")
+            or "Vui lòng bổ sung thêm thông tin để xác định đúng thủ tục và thẩm quyền."
+        )
+        st.markdown(clarify_txt)
+        h(
+            f'<div class="ai-meta-row">'
+            f'<span class="chip chip-red">❓ Cần làm rõ dữ kiện phân nhánh</span>'
+            f'<span class="chip chip-info">⏱ {lat_ms:.0f} ms</span>'
+            f'</div>'
+        )
+        cands = state.get("clarification_candidates") or []
+        if is_latest and cands:
+            st.caption("Chọn nhanh nhánh thủ tục bạn quan tâm:")
+            cols = st.columns(min(len(cands), 3), gap="small")
+            for j, cand in enumerate(cands[:3]):
+                c_code = cand.get("ma_thu_tuc", "")
+                c_name = cand.get("ten_thu_tuc", c_code)
+                short_lbl = c_name if len(c_name) <= 44 else c_name[:42].rstrip() + "…"
+                if cols[j].button(
+                    f"👉 {short_lbl}",
+                    key=f"clarify_opt_{conv_id}_{turn_idx}_{j}_{c_code}",
+                    width="stretch",
+                    help=c_name,
+                ):
+                    st.session_state["pending_prompt"] = f"Tôi muốn hỏi cụ thể về: {c_name} ({c_code})"
+                    st.rerun()
+        return
+
+    # 3. Từ chối an toàn
     if draft.get("is_refusal"):
         st.markdown(draft.get("direct_advice") or draft.get("application", ""))
         h(
@@ -972,11 +1128,16 @@ def render_assistant_turn(state: Dict[str, Any], turn_idx: int) -> None:
         h(
             f"""
 <details class="legal-drawer">
-  <summary>📊 Xem Sơ đồ cấu trúc 6 trường &amp; JSON gốc</summary>
+  <summary>📊 Xem Sơ đồ cấu trúc 6 trường, Liên thông &amp; JSON gốc</summary>
   <div class="drawer-body">{build_schema_6_html(proc)}</div>
 </details>
 """
         )
+        if st.button(
+            f"📝 Điền thông tin & Xuất đơn .docx ({ma_tt})",
+            key=f"docx_btn_{conv_id}_{turn_idx}_{ma_tt}",
+        ):
+            open_docx_generator_dialog(proc)
 
 
 # ==============================================================================
@@ -1027,7 +1188,7 @@ def render_gemini_chat() -> None:
         for idx, turn in enumerate(conv["turns"], start=1):
             h(f'<div id="turn-anchor-{idx}" class="user-bubble-wrap"><div class="user-bubble">{esc(turn["query"])}</div></div>')
             with st.chat_message("assistant", avatar="✨"):
-                render_assistant_turn(turn["state"], turn_idx=idx)
+                render_assistant_turn(turn["state"], turn_idx=idx, is_latest=False, conv_id=conv["id"])
 
         new_idx = len(conv["turns"]) + 1
         h(f'<div id="turn-anchor-{new_idx}" class="user-bubble-wrap"><div class="user-bubble">{esc(q_clean)}</div></div>')
@@ -1057,7 +1218,7 @@ def render_gemini_chat() -> None:
                 conv["title"] = q_clean[:44] + ("…" if len(q_clean) > 44 else "")
             conv["turns"].append({"query": q_clean, "state": final_state})
             _save_conversations(st.session_state["conversations"])
-            render_assistant_turn(final_state, turn_idx=len(conv["turns"]))
+            render_assistant_turn(final_state, turn_idx=len(conv["turns"]), is_latest=True, conv_id=conv["id"])
         st.session_state["scroll_to_turn"] = len(conv["turns"])
         st.rerun()
 
@@ -1091,14 +1252,20 @@ def render_gemini_chat() -> None:
         return
 
     # Hiển thị toàn bộ luồng hội thoại trực tiếp trên trang (cuộn chuột mượt toàn trang)
+    total_turns = len(conv["turns"])
     for idx, turn in enumerate(conv["turns"], start=1):
         h(f'<div id="turn-anchor-{idx}" class="user-bubble-wrap"><div class="user-bubble">{esc(turn["query"])}</div></div>')
         with st.chat_message("assistant", avatar="✨"):
-            render_assistant_turn(turn["state"], turn_idx=idx)
+            render_assistant_turn(
+                turn["state"],
+                turn_idx=idx,
+                is_latest=(idx == total_turns),
+                conv_id=conv["id"],
+            )
 
-    # Chip gợi ý hỏi tiếp nhanh nếu lượt cuối đang tư vấn 1 thủ tục cụ thể
+    # Chip gợi ý hỏi tiếp nhanh nếu lượt cuối đang tư vấn 1 thủ tục cụ thể (không phải lượt hỏi ngược làm rõ)
     latest_state = conv["turns"][-1]["state"]
-    if latest_state.get("primary_procedure"):
+    if latest_state.get("primary_procedure") and not latest_state.get("needs_clarification"):
         h('<div style="overflow-anchor: none; height: 8px;"></div>')
         followups = [
             "📎 Cần giấy tờ gì?",
@@ -1177,7 +1344,7 @@ def render_tra_cuu() -> None:
 </div>
 """
         )
-        a, b = st.columns([4, 1])
+        a, b1, b2 = st.columns([3.2, 0.9, 1.1])
         with a.expander("Xem toàn văn thủ tục"):
             p = it["raw_procedure"]
             st.markdown("**Trình tự thực hiện**")
@@ -1188,14 +1355,16 @@ def render_tra_cuu() -> None:
                 st.markdown(f"- `{g['form_id']}` — {g['ten_giay_to']}")
             if it.get("van_ban_thay_the"):
                 st.warning(f"Văn bản thay thế: {it['van_ban_thay_the']}")
-        b.download_button(
-            "⬇ Tải JSON",
+        b1.download_button(
+            "⬇ JSON",
             data=json.dumps(it["raw_procedure"], ensure_ascii=False, indent=2),
             file_name=f"{it['ma_thu_tuc']}.json",
             mime="application/json",
             key=f"dl_{it['ma_thu_tuc']}",
             width="stretch",
         )
+        if b2.button("📝 Tạo đơn .docx", key=f"tc_docx_{it['ma_thu_tuc']}", width="stretch"):
+            open_docx_generator_dialog(it["raw_procedure"])
 
 
 # ==============================================================================
@@ -1469,10 +1638,15 @@ def render_dong_bo() -> None:
                     raw_bytes = uploaded.read()
                     if uploaded.name.lower().endswith(".pdf"):
                         txt = extract_text_from_pdf_bytes(raw_bytes)
+                        if len(txt.strip()) < 200 and use_llm_direct:
+                            with st.spinner("PDF ít chữ (có thể là bản scan) — đang đọc bằng Gemini Multimodal..."):
+                                ocr_txt = extract_text_from_scanned_pdf_with_gemini(raw_bytes)
+                                if len(ocr_txt) > len(txt):
+                                    txt = ocr_txt
                     else:
                         txt = raw_bytes.decode("utf-8", errors="ignore")
                     if not txt.strip():
-                        st.error("Không đọc được text từ tệp (PDF có thể là bản scan ảnh chưa OCR).")
+                        st.error("Không đọc được text từ tệp (PDF có thể là bản scan ảnh hoặc chưa cấu hình Gemini API).")
                     else:
                         doc = OfficialSourceDocument(
                             source_name="pdf_upload",

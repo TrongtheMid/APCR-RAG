@@ -19,7 +19,11 @@ from src.ingestion.models import (
     ProcedureExtractionBatch,
     StagingQueue,
 )
-from src.ingestion.pdf_extractor import download_and_extract_pdf, extract_text_from_pdf_bytes
+from src.ingestion.pdf_extractor import (
+    download_and_extract_pdf,
+    extract_text_from_pdf_bytes,
+    extract_text_from_scanned_pdf_with_gemini,
+)
 from src.ingestion.procedure_extractor import (
     detect_expiry_impacts,
     extract_procedures_deterministic,
@@ -50,6 +54,7 @@ __all__ = [
     "fetch_chinhphu_detail",
     "fetch_congbao_latest",
     "extract_text_from_pdf_bytes",
+    "extract_text_from_scanned_pdf_with_gemini",
     "download_and_extract_pdf",
     "detect_expiry_impacts",
     "extract_procedures_deterministic",
