@@ -1,5 +1,5 @@
 """
-Lược đồ Câu hỏi Kiểm thử Thực nghiệm (BenchmarkQuestion) trong Bộ 50 câu hỏi Benchmark.
+Lược đồ Câu hỏi Kiểm thử Thực nghiệm (BenchmarkQuestion) trong Bộ 300 câu hỏi Benchmark chuẩn hóa.
 """
 
 from typing import List, Literal, Optional
@@ -7,8 +7,8 @@ from pydantic import BaseModel, Field
 
 
 class BenchmarkQuestion(BaseModel):
-    """Cấu trúc một ca kiểm thử trong Bộ 50 câu hỏi Benchmark."""
-    question_id: str = Field(..., description="Mã câu hỏi (VD: BM-HC-01, BM-HS-26)")
+    """Cấu trúc một ca kiểm thử trong Bộ câu hỏi Benchmark chuẩn luật."""
+    question_id: str = Field(..., description="Mã câu hỏi (VD: BM-HC-001, BM-HS-151)")
     question: str = Field(..., description="Nội dung câu hỏi thực tế của người dân")
     phan_nhom: Literal["Thủ tục hành chính", "Tố tụng hình sự"]
     linh_vuc: str

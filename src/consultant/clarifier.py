@@ -68,14 +68,20 @@ _CLARIFICATION_RULES: List[ClarificationRule] = []
 _AUTHORITY_QUERY_MARKERS = (
     "nộp ở đâu",
     "nộp tại đâu",
+    "nộp ở cơ quan nào",
+    "nộp hồ sơ tại đâu",
+    "nộp đơn ở đâu",
     "cơ quan nào",
     "nộp cho cơ quan nào",
+    "nộp tại cơ quan nào",
     "nộp cho ai",
     "gửi đến đâu",
     "gửi cho cơ quan nào",
     "gửi ở đâu",
     "nơi nào tiếp nhận",
-    "thẩm quyền",
+    "thuộc thẩm quyền của cơ quan nào",
+    "cơ quan nào có thẩm quyền",
+    "ai là người có thẩm quyền",
     "ubnd xã hay",
     "xã hay huyện",
     "sở tư pháp hay tòa án",
@@ -99,7 +105,6 @@ _DELEGATION_OR_CHOICE_MARKERS = (
     "loại nào",
     "số nào",
     "số 1 hay số 2",
-    "khác nhau",
 )
 
 _TITLE_STOPWORDS = {
@@ -303,6 +308,16 @@ def _evaluate_criminal_stage_authority_rule(
     if len(stages) < 2 or len(authorities) < 2:
         return None
 
+    # Chỉ hỏi ngược giai đoạn tố tụng khi thẩm quyền thực sự phân nhánh giữa các cơ quan tiến hành tố tụng (CQĐT / VKS / Tòa án)
+    auth_joined = " | ".join(authorities).lower()
+    distinct_judicial_organs = sum(
+        1
+        for org_kw in ("điều tra", "kiểm sát", "tòa án")
+        if org_kw in auth_joined
+    )
+    if distinct_judicial_organs < 2:
+        return None
+
     q_lower = query.lower()
     if not any(m in q_lower for m in _AUTHORITY_QUERY_MARKERS):
         return None
@@ -325,6 +340,8 @@ def _evaluate_criminal_stage_authority_rule(
         "tòa án",
         "trại tạm giam",
         "nhà tạm giữ",
+        "cơ sở giam giữ",
+        "xin xác nhận",
     )
     if any(m in combined for m in stage_or_auth_markers):
         return None
@@ -355,11 +372,21 @@ def _evaluate_expungement_offense_rule(
     q_lower = query.lower()
     if "xóa án tích" not in q_lower:
         return None
+    if "lý lịch tư pháp" in q_lower and ("số 1" in q_lower or "số 2" in q_lower or "cư trú" in q_lower):
+        return None
 
     combined = _combine_query_and_history(query, chat_history)
     known_markers = (
         "đương nhiên",
         "quyết định của tòa",
+        "tòa án quyết định",
+        "tòa án xóa án tích",
+        "đơn xin xóa án tích tại tòa",
+        "chánh án",
+        "quyết định xóa án tích",
+        "bác đơn xin xóa án tích",
+        "khoản 2 điều 369",
+        "khoản 3 điều 369",
         "an ninh quốc gia",
         "phá hoại hòa bình",
         "chống loài người",

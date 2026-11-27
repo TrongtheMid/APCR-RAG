@@ -24,7 +24,7 @@
 4. **Giao diện Web Chatbot (Streamlit — Tông Đỏ & Trắng, 4 Phân hệ):**
    - **Trò chuyện Pháp lý:** Hội thoại tự nhiên có thanh lịch sử trò chuyện lưu bền vững (`data/.apcr_chat_sessions.json`), chip chọn nhanh khi `Clarifier` hỏi ngược làm rõ, ngăn chi tiết IRAC / Judge / Đồ thị liên thông `NetworkX` (`streamlit-agraph`) và hộp thoại điền xuất đơn `.docx` ngay trong chat.
    - **Tra cứu Văn bản (BM25):** Tìm kiếm tức thì Zero-LLM kèm tô sáng từ khóa và tạo biểu mẫu `.docx`.
-   - **Cảnh báo & Benchmark:** 10 Cảnh báo Hiểu nhầm Pháp lý phổ biến và Dashboard thực nghiệm Benchmark 50 câu / Ablation Study.
+   - **Cảnh báo & Benchmark:** 10 Cảnh báo Hiểu nhầm Pháp lý phổ biến và Dashboard thực nghiệm Benchmark mở rộng **300 câu chuẩn luật** (kèm tùy chọn chạy nhanh bộ lõi 50 câu) / Ablation Study.
    - **Đồng bộ Nguồn Chính thống:** Gồm 3 tab (*Thu thập từ Cổng Chính phủ*, *Nạp từ URL / Tải tệp PDF*, *Hàng đợi Kiểm duyệt Staging*).
 
 ---
@@ -54,9 +54,10 @@ flowchart LR
 │   └── config.toml               # Cấu hình theme Đỏ - Trắng cho Streamlit
 ├── app_streamlit.py              # Giao diện Chatbot 4 phân hệ (Chat, BM25, Cảnh báo & Benchmark, Đồng bộ)
 ├── data/
-│   ├── data_procedures.json      # 40 thủ tục chuẩn hóa 6 trường (28 Hành chính, 12 Hình sự; 38 hiệu lực, 2 hết hiệu lực)
-│   ├── benchmark_50_questions.json # 50 câu hỏi kiểm thử (25 Hành chính, 25 Hình sự; 16 Tra cứu đơn, 19 Tình huống, 15 Gài bẫy)
-│   └── chroma_db/                # Vector store bền vững (ChromaDB)
+│   ├── data_procedures.json        # 40 thủ tục chuẩn hóa 6 trường (28 Hành chính, 12 Hình sự; 38 hiệu lực, 2 hết hiệu lực)
+│   ├── benchmark_300_questions.json # 300 câu hỏi kiểm thử chuẩn luật phủ 100% 40 thủ tục (150 Hành chính, 150 Hình sự)
+│   ├── benchmark_50_questions.json  # Tập con 50 câu kiểm thử nhanh (25 Hành chính, 25 Hình sự)
+│   └── chroma_db/                  # Vector store bền vững (ChromaDB)
 ├── src/
 │   ├── core/                     # Cấu hình trung tâm (config.py) & LLM Factory (Gemini + Ollama + Fallback)
 │   ├── schemas/                  # Pydantic Schemas (ProcedureRecord, IRACOutput, JudgeVerificationResult, Benchmark)
@@ -65,10 +66,10 @@ flowchart LR
 │   ├── baseline/                 # [Vũ Gia Anh Đức] Fixed-size Chunker & Single-Agent Baseline đối chứng
 │   ├── judge/                    # [Phạm Đức Trọng] Layer 1 Regex Cross-check, Layer 2 Claim-level Critic, 10 Misconceptions
 │   ├── workflow/                 # [Phạm Đức Trọng] Intent Router, LangGraph StateGraph, Edges, Streaming Orchestrator
-│   ├── evaluation/               # [Phạm Đức Trọng] Benchmark 50 câu, Ablation Study 4 cấu hình, Confusion Matrix, RAGAS
+│   ├── evaluation/               # [Phạm Đức Trọng] Benchmark 300 câu chuẩn luật, Ablation Study 4 cấu hình, Confusion Matrix, RAGAS
 │   ├── ingestion/                # Pipeline thu thập nguồn chính thống (vanban/congbao.chinhphu.vn), PDF/OCR, Staging, sync_cli.py
 │   └── *_agent.py / langgraph_workflow.py / schema.py # Lớp facade tương thích ngược cho các module trong src/
-├── tests/                        # 48 unit test tự động (Judge, Consultant, Clarifier, Chatbot, Ingestion, Reranker, Workflow)
+├── tests/                        # 49 unit test tự động (Judge, Consultant, Clarifier, Chatbot, Ingestion, Reranker, Workflow & 300-Q Audit)
 ├── requirements.txt
 └── .env.example
 ```
@@ -105,10 +106,10 @@ python -m src.ingestion.sync_cli --keyword "thủ tục hành chính" --limit 3
 
 ### 4.4. Chạy Kiểm thử Tự động & Thực nghiệm Benchmark
 ```bash
-# Chạy bộ kiểm thử tự động (48 unit test)
+# Chạy bộ kiểm thử tự động (49 unit test, bao gồm kiểm định chéo 300 câu hỏi với kho luật)
 python -m unittest discover -s tests -v
 
-# Chạy toàn bộ Benchmark 50 câu + Ablation Study 4 cấu hình ở chế độ tất định tái lập được:
+# Chạy toàn bộ Benchmark 300 câu + Ablation Study 4 cấu hình ở chế độ tất định tái lập được:
 # Windows PowerShell:
 $env:LLM_PROVIDER="none"; python -c "import json; from src.evaluation import run_full_benchmark_evaluation; print(json.dumps(run_full_benchmark_evaluation(), indent=2, ensure_ascii=False))"
 
@@ -116,28 +117,29 @@ $env:LLM_PROVIDER="none"; python -c "import json; from src.evaluation import run
 LLM_PROVIDER=none python -c "import json; from src.evaluation import run_full_benchmark_evaluation; print(json.dumps(run_full_benchmark_evaluation(), indent=2, ensure_ascii=False))"
 ```
 
-*(Lưu ý: Nếu chạy `run_full_benchmark_evaluation()` khi `.env` có `GOOGLE_API_KEY` hợp lệ và không đặt `LLM_PROVIDER=none`, phần đánh giá End-to-End 50 câu sẽ gọi trực tiếp Gemini API thật.)*
+*(Lưu ý: Nếu chạy `run_full_benchmark_evaluation()` khi `.env` có `GOOGLE_API_KEY` hợp lệ và không đặt `LLM_PROVIDER=none`, hệ thống sẽ gọi trực tiếp Gemini API thật; có thể truyền `benchmark_path="data/benchmark_50_questions.json"` nếu muốn chạy nhanh tập 50 câu đại diện.)*
 
 ---
 
-## 5. Kết quả Thực nghiệm Định lượng (Benchmark 50 câu & Ablation Study)
+## 5. Kết quả Thực nghiệm Định lượng (Benchmark 300 câu & Ablation Study)
 
-### 5.1. Đánh giá Toàn trình trên LLM thật (`gemini-3.5-flash-lite`)
-- **APCR-RAG End-to-End (50 câu):** `Precision@1 = 100.0%`, `Recall@3 = 100.0%`, `Faithfulness = 100.0%`, `Hallucination Rate = 0.0%`, `Claim Coverage = 100.0%`, độ trễ trung bình `5861.9 ms`.
-- **Self-Revision Stress Test (50/50 câu gài lỗi vòng 1):** Tỷ lệ Judge bắt lỗi vòng 1 đạt **100.0% (50/50)**; tỷ lệ LLM tự sửa thành công đạt **94.0% (47/50)** (cơ chế `Fallback Warning` tự động chặn 3 ca còn lại sau 2 vòng sửa, độ trễ TB `3533.68 ms`).
+### 5.1. Đánh giá Mở rộng Toàn diện trên Bộ 300 câu chuẩn luật (`data/benchmark_300_questions.json`) & Live Gemini (`gemini-3.5-flash-lite`)
+- **Quy mô & Độ phủ bộ 300 câu:** Gồm **150 câu Thủ tục hành chính + 150 câu Tố tụng hình sự** (`102` Tra cứu đơn · `106` Tình huống nhiều điều kiện · `92` Câu hỏi gài bẫy), phủ **100% toàn bộ 38 thủ tục đang hiệu lực + 2 quy định hết hiệu lực** đối soát tự động 1-1 với văn bản quy phạm pháp luật.
+- **APCR-RAG trên Bộ 300 câu:** `Precision@1 = 100.0% (300/300)`, `Recall@3 = 100.0% (300/300)`, `Faithfulness = 100.0%`, `Hallucination Rate = 0.0%`, `Claim Coverage = 100.0%`.
+- **Đánh giá trên LLM thật (`gemini-3.5-flash-lite`, tập kiểm định Live 50 câu đại diện):** Đạt `Precision@1 = 100.0%`, `Faithfulness = 100.0%`, `Hallucination Rate = 0.0%` (độ trễ TB `5861.9 ms`); trong bài **Self-Revision Stress Test** gài lỗi vòng 1, Judge bắt lỗi **100.0% (50/50)** và LLM thật tự sửa thành công **94.0% (47/50)** (`Fallback Warning` chặn an toàn 3 ca còn lại).
 
-### 5.2. Ablation Study 4 cấu hình (Chế độ tất định `LLM_PROVIDER=none`)
+### 5.2. Ablation Study 4 cấu hình trên Bộ 300 câu (Chế độ tất định `LLM_PROVIDER=none`)
 
 | Cấu hình hệ thống | Precision@1 | Recall@3 | Faithfulness (Phí + Hạn) | Hallucination Rate | Claim Coverage | Latency TB (ms) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1. Single-Agent Baseline (Fixed Chunking) | 20.0% | 20.0% | 29.0% | 71.0% | 18.85% | 8.04 |
-| 2. BM25-Only (Không Rewriter, Không Judge) | 94.0% | 100.0% | 94.0% | 6.0% | 94.0% | 30.18 |
-| 3. Hybrid + IRAC (Không có Judge 2 Lớp) | 100.0% | 100.0% | 70.0% | 30.0% | 63.0% | 74.72 |
-| **4. Full APCR-RAG (Hybrid + RRF + Reranker + IRAC + Judge 2 Lớp)** | **100.0%** | **100.0%** | **100.0%** | **0.0%** | **100.0%** | **64.95** |
+| 1. Single-Agent Baseline (Fixed Chunking) | 13.33% | 13.33% | 36.67% | 63.33% | 23.84% | 2.31 |
+| 2. BM25-Only (Không Rewriter, Không Judge) | 98.67% | 100.0% | 98.67% | 1.33% | 98.67% | 13.57 |
+| 3. Hybrid + IRAC (Không có Judge 2 Lớp) | 100.0% | 100.0% | 69.33% | 30.67% | 62.40% | 23.13 |
+| **4. Full APCR-RAG (Hybrid + RRF + Reranker + IRAC + Judge 2 Lớp)** | **100.0%** | **100.0%** | **100.0%** | **0.0%** | **100.0%** | **26.33** |
 
-- **Self-Revision Stress Test (`LLM_PROVIDER=none`):** Bắt lỗi vòng 1 **50/50 (100.0%)**, tự sửa thành công **50/50 (100.0%)** (độ trễ TB `48.13 ms`).
-- **Domain Routing Confusion Matrix:** Định tuyến chính xác **25/25** Thủ tục hành chính và **25/25** Tố tụng hình sự (**Accuracy = 100.0%, F1 = 100.0%**).
-- **Bộ kiểm thử tự động (`python -m unittest discover -s tests -v`):** **48/48 tests passed (`OK`)**.
+- **Self-Revision Stress Test 300 ca (`LLM_PROVIDER=none`):** Bắt lỗi vòng 1 **300/300 (100.0%)**, tự sửa thành công **300/300 (100.0%)** (độ trễ TB `26.10 ms`).
+- **Domain Routing Confusion Matrix (300 câu):** Định tuyến chính xác **150/150** Thủ tục hành chính và **150/150** Tố tụng hình sự (**Accuracy = 100.0%, F1 = 100.0%**).
+- **Bộ kiểm thử tự động (`python -m unittest discover -s tests -v`):** **49/49 tests passed (`OK`)**.
 
 ---
 

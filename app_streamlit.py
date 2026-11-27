@@ -27,6 +27,7 @@ from src.consultant_agent import (
     get_related_procedures,
     get_supported_form_fields,
 )
+from src.core.config import BENCHMARK_50_DATA_PATH, BENCHMARK_DATA_PATH
 from src.evaluation import run_full_benchmark_evaluation
 from src.ingestion import (
     OfficialSourceDocument,
@@ -1368,7 +1369,7 @@ def render_tra_cuu() -> None:
 
 
 # ==============================================================================
-# VIEW 3 — CẢNH BÁO HIỂU NHẦM PHÁP LÝ & BENCHMARK 50 CÂU
+# VIEW 3 — CẢNH BÁO HIỂU NHẦM PHÁP LÝ & BENCHMARK 300 CÂU
 # ==============================================================================
 
 def render_canh_bao() -> None:
@@ -1377,7 +1378,7 @@ def render_canh_bao() -> None:
 <div class="gem-topbar">
   <div class="gem-model-pill">
     <span>🚨 Cảnh báo Hiểu nhầm &amp; Benchmark</span>
-    <span class="gem-model-sub">Judge 2 lớp · 50 câu kiểm thử</span>
+    <span class="gem-model-sub">Judge 2 lớp · 300 câu kiểm thử chuẩn luật</span>
   </div>
 </div>
 """
@@ -1419,10 +1420,25 @@ def render_canh_bao() -> None:
                     st.rerun()
 
     with tab_bench:
-        st.caption("25 câu Hành chính + 25 câu Tố tụng hình sự · Đối chứng 4 cấu hình Ablation Study & Confusion Matrix.")
-        if st.button("▶ Chạy đánh giá Toàn diện (Benchmark 50 câu + Ablation Study)", type="primary"):
-            with st.spinner("Đang chạy thực nghiệm đối chứng trên bộ 50 câu hỏi..."):
-                st.session_state["benchmark_full_report"] = run_full_benchmark_evaluation(include_ablation=True)
+        st.caption(
+            "Bộ kiểm thử mở rộng 300 câu chuẩn luật (150 Hành chính + 150 Tố tụng hình sự, phủ 100% 40 thủ tục) · "
+            "Đối chứng 4 cấu hình Ablation Study & Confusion Matrix."
+        )
+        b_col1, b_col2 = st.columns([2.2, 1.8])
+        bench_choice = b_col1.radio(
+            "Chọn bộ dữ liệu kiểm thử",
+            ["Bộ chuẩn 300 câu (Phủ đủ 40 thủ tục)", "Bộ lõi 50 câu (Chạy nhanh)"],
+            horizontal=True,
+            key="bench_suite_choice",
+        )
+        selected_bench_path = BENCHMARK_DATA_PATH if "300" in bench_choice else BENCHMARK_50_DATA_PATH
+        n_lbl = "300 câu" if "300" in bench_choice else "50 câu"
+        if st.button(f"▶ Chạy đánh giá Toàn diện (Benchmark {n_lbl} + Ablation Study)", type="primary"):
+            with st.spinner(f"Đang chạy thực nghiệm đối chứng trên bộ {n_lbl} hỏi..."):
+                st.session_state["benchmark_full_report"] = run_full_benchmark_evaluation(
+                    benchmark_path=selected_bench_path,
+                    include_ablation=True,
+                )
 
         report = st.session_state.get("benchmark_full_report")
         if report:

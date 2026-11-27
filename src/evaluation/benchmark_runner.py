@@ -398,7 +398,7 @@ def run_full_benchmark_evaluation(
                     "question": q["question"],
                     "answer": f"{draft.get('application', '')}\n{draft.get('conclusion', '')}",
                     "contexts": [json.dumps(primary_proc, ensure_ascii=False)],
-                    "ground_truth": q.get("expected_key_condition", ""),
+                    "ground_truth": q.get("ground_truth_summary") or q.get("expected_key_condition", ""),
                 }
             )
 

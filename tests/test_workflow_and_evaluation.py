@@ -144,9 +144,63 @@ class TestWorkflowAndEvaluation(unittest.TestCase):
         self.assertEqual(r_visa["final_status"], "REFUSED_SAFELY")
         self.assertTrue(r_visa["irac_draft"]["is_refusal"])
 
+    def test_benchmark_300_legal_ground_truth_integrity(self) -> None:
+        import json
+        from src.core.config import DEFAULT_DATA_PATH
+        from src.schemas.benchmark_schema import BenchmarkQuestion
+
+        with open(DEFAULT_DATA_PATH, "r", encoding="utf-8") as f:
+            procs = json.load(f)
+        proc_map = {p["ma_va_ten_thu_tuc"]["ma_thu_tuc"]: p for p in procs}
+        active_codes = {
+            code
+            for code, p in proc_map.items()
+            if p["can_cu_phap_ly"][0]["trang_thai_hieu_luc"] == "ĐANG HIỆU LỰC"
+        }
+
+        questions = load_benchmark_questions()
+        self.assertEqual(len(questions), 300)
+
+        seen_ids = set()
+        seen_texts = set()
+        covered_codes = set()
+        hc_count = hs_count = 0
+
+        for raw_q in questions:
+            bq = BenchmarkQuestion.model_validate(raw_q)
+            self.assertNotIn(bq.question_id, seen_ids)
+            seen_ids.add(bq.question_id)
+
+            norm_q = bq.question.strip().lower()
+            self.assertNotIn(norm_q, seen_texts)
+            seen_texts.add(norm_q)
+
+            self.assertIn(bq.expected_ma_thu_tuc, proc_map)
+            gt_proc = proc_map[bq.expected_ma_thu_tuc]
+            gt_info = gt_proc["ma_va_ten_thu_tuc"]
+            gt_laws = [c["law_id"] for c in gt_proc["can_cu_phap_ly"]]
+
+            self.assertEqual(bq.phan_nhom, gt_info["phan_nhom"])
+            self.assertEqual(bq.linh_vuc, gt_info["linh_vuc"])
+            self.assertEqual(bq.expected_law_ids, gt_laws)
+            self.assertEqual(bq.expected_muc_phi_vnd, int(gt_proc["le_phi"]["muc_phi_vnd"]))
+            self.assertEqual(bq.expected_so_ngay_toi_da, int(gt_proc["thoi_han_giai_quyet"]["so_ngay_toi_da"]))
+            if bq.difficulty == "Gài bẫy":
+                self.assertTrue(bool(bq.trap_note and len(bq.trap_note.strip()) >= 10))
+
+            covered_codes.add(bq.expected_ma_thu_tuc)
+            if bq.phan_nhom == "Thủ tục hành chính":
+                hc_count += 1
+            else:
+                hs_count += 1
+
+        self.assertEqual(hc_count, 150)
+        self.assertEqual(hs_count, 150)
+        self.assertEqual(covered_codes, active_codes)
+
     def test_ablation_study_and_confusion_matrix(self) -> None:
         questions = load_benchmark_questions()
-        self.assertEqual(len(questions), 50)
+        self.assertEqual(len(questions), 300)
 
         cm = compute_routing_confusion_matrix(questions)
         mx = cm["matrix"]
@@ -156,21 +210,23 @@ class TestWorkflowAndEvaluation(unittest.TestCase):
             + mx["actual_hinh_su_pred_hanh_chinh"]
             + mx["actual_hinh_su_pred_hinh_su"]
         )
-        self.assertEqual(total_cm, 50)
-        self.assertGreaterEqual(cm["accuracy_pct"], 90.0)
+        self.assertEqual(total_cm, 300)
+        self.assertGreaterEqual(cm["accuracy_pct"], 98.0)
 
-        stress = evaluate_self_revision_rate(questions[:10])
-        self.assertEqual(stress["total_stress_cases"], 10)
-        self.assertEqual(stress["detected_at_round1"], 10)
-        self.assertEqual(stress["recovered_to_pass"], 10)
+        stress = evaluate_self_revision_rate(questions[:20])
+        self.assertEqual(stress["total_stress_cases"], 20)
+        self.assertEqual(stress["detected_at_round1"], 20)
+        self.assertEqual(stress["recovered_to_pass"], 20)
         self.assertEqual(stress["self_revision_correction_rate_pct"], 100.0)
 
         ab = run_ablation_study()
         self.assertEqual(len(ab["ablation_table"]), 4)
-        # Full APCR-RAG phải có Faithfulness cao hơn Single-Agent Baseline và cấu hình không có Judge
+        # Full APCR-RAG phải đạt 100% P@1 & Faithfulness trên bộ 300 câu, vượt trội Baseline và cấu hình tắt Judge
         baseline_row = ab["ablation_table"][0]
         no_judge_row = ab["ablation_table"][2]
         full_row = ab["ablation_table"][3]
+        self.assertEqual(full_row["precision_at_1_pct"], 100.0)
+        self.assertEqual(full_row["faithfulness_pct"], 100.0)
         self.assertGreater(full_row["faithfulness_pct"], baseline_row["faithfulness_pct"])
         self.assertGreater(full_row["faithfulness_pct"], no_judge_row["faithfulness_pct"])
 

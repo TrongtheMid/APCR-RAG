@@ -16,7 +16,8 @@ except ImportError:
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_DATA_PATH = PROJECT_ROOT / "data" / "data_procedures.json"
-BENCHMARK_DATA_PATH = PROJECT_ROOT / "data" / "benchmark_50_questions.json"
+BENCHMARK_DATA_PATH = PROJECT_ROOT / "data" / "benchmark_300_questions.json"
+BENCHMARK_50_DATA_PATH = PROJECT_ROOT / "data" / "benchmark_50_questions.json"
 
 GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "").strip()
 GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
